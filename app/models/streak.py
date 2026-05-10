@@ -1,6 +1,6 @@
 from datetime import datetime, date
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, func
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, func, Column
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -18,6 +18,8 @@ class UserStreak(Base):
 
     current_streak: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     best_streak: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    today_verified_points = Column(Integer, default=0, nullable=False)
 
     last_streak_date: Mapped[date | None] = mapped_column(Date, nullable=True)
 

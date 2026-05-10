@@ -15,6 +15,8 @@ from app.schemas.submission import (
     SubmissionManualReviewRequest,
 )
 from app.services.submission_service import SubmissionService
+from app.schemas.execution_feed import ExecutionFeedResponse
+from app.services.execution_feed_service import ExecutionFeedService
 
 router = APIRouter(prefix="/submissions", tags=["Submissions"])
 
@@ -135,3 +137,12 @@ async def manual_review_submission(
         return SubmissionResponse.model_validate(submission)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/feed", response_model=ExecutionFeedResponse)
+async def get_execution_feed(
+    db: DbSession,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    service = ExecutionFeedService(db)
+    return await service.get_feed(current_user)
