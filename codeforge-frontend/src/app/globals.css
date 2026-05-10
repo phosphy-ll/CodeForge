@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+:root,
+html[data-theme="dark"] {
+  --cf-bg: #050509;
+  --cf-bg-secondary: #0b0b12;
+  --cf-card: #11111a;
+  --cf-border: #1a1a25;
+
+  --cf-primary: #7c5cff;
+  --cf-accent: #9b7bff;
+  --cf-ai: #3cf2ff;
+
+  --cf-text: #ffffff;
+  --cf-text-secondary: #a0a0b0;
+  --cf-text-muted: #6b6b7a;
+
+  --cf-glow: rgba(124, 92, 255, 0.35);
+}
+
+html[data-theme="light"] {
+  --cf-bg: #f6f6fb;
+  --cf-bg-secondary: #eeeeF7;
+  --cf-card: #ffffff;
+  --cf-border: #e4e4ef;
+
+  --cf-primary: #7C5CFF;
+  --cf-primary-strong: #6A48FF;
+  --cf-primary-soft: #AFA0FF;
+  --cf-ai: #0891b2;
+
+  --cf-text: #0a0a0f;
+  --cf-text-secondary: #5c5c70;
+  --cf-text-muted: #7a7a8d;
+
+  --cf-glow: rgba(124, 92, 255, 0.18);
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--cf-bg);
+  color: var(--cf-text);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.custom-sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 92, 255, 0.35) transparent;
+}
+
+.custom-sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(124, 92, 255, 0.35);
+  border-radius: 999px;
+}
+
+.custom-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(155, 123, 255, 0.55);
+}
+
+@keyframes glass-sweep {
+  0% {
+    transform: translateX(-120%) rotate(12deg);
+    opacity: 0;
+  }
+
+  35% {
+    opacity: 0.7;
+  }
+
+  70% {
+    opacity: 0.15;
+  }
+
+  100% {
+    transform: translateX(320%) rotate(12deg);
+    opacity: 0;
+  }
+}
+@keyframes glassFlow {
+  0% {
+    transform: translateX(-160%) rotate(12deg);
+    opacity: 0;
+  }
+
+  15% {
+    opacity: 1;
+  }
+
+  85% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(420%) rotate(12deg);
+    opacity: 0;
+  }
+}
+
+.cf-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 92, 255, 0.45) transparent;
+}
+
+.cf-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.cf-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cf-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(124, 92, 255, 0.45);
+  border-radius: 999px;
+}
+
+.cf-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(167, 139, 250, 0.65);
+}
