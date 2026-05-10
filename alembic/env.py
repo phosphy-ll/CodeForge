@@ -26,6 +26,7 @@ from app.models.user_session import UserSession  # noqa: F401
 from app.models.exam_attempt import ExamAttempt
 from app.models.notification import Notification
 from app.models.streak import UserStreak, StreakLog
+from app.models.user_skill import UserSkill
 
 config = context.config
 

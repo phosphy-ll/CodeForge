@@ -8,6 +8,9 @@ from app.models.streak import UserStreak
 from app.models.task_submission import TaskSubmission
 from app.models.user import User
 from app.repositories.achievement_repository import AchievementRepository
+from sqlalchemy import func
+from app.models.exam_attempt import ExamAttempt
+from app.models.practice_attempt import PracticeAttempt
 
 
 class AchievementService:
@@ -68,6 +71,31 @@ class AchievementService:
         )
         completed_goals = list(goals_result.scalars().all())
 
+        exam_result = await self.session.execute(
+            select(ExamAttempt).where(ExamAttempt.user_id == user_id)
+        )
+        exam_attempts = list(exam_result.scalars().all())
+
+        quiz_attempts = [x for x in exam_attempts if x.attempt_type == "quiz"]
+        real_exam_attempts = [x for x in exam_attempts if x.attempt_type == "exam"]
+
+        verified_exams = [
+            x for x in real_exam_attempts
+            if x.status == "verified"
+        ]
+
+        practice_result = await self.session.execute(
+            select(PracticeAttempt).where(PracticeAttempt.user_id == user_id)
+        )
+        practice_attempts = list(practice_result.scalars().all())
+
+        daily_points_result = await self.session.execute(
+            select(func.coalesce(func.max(UserStreak.today_verified_points), 0)).where(
+                UserStreak.user_id == user_id
+            )
+        )
+        today_points = int(daily_points_result.scalar() or 0)
+
         issued = []
 
         for achievement in achievements:
@@ -97,6 +125,36 @@ class AchievementService:
             elif achievement.key == "first_goal_completed":
                 progress_value = len(completed_goals)
                 is_completed = len(completed_goals) >= 1
+
+            elif achievement.key == "first_quiz_completed":
+                progress_value = len(quiz_attempts)
+                is_completed = len(quiz_attempts) >= 1
+
+            elif achievement.key == "first_exam_completed":
+                progress_value = len(real_exam_attempts)
+                is_completed = len(real_exam_attempts) >= 1
+
+            elif achievement.key == "exam_90_plus":
+                best_exam_score = max([x.score or 0 for x in real_exam_attempts], default=0)
+                progress_value = best_exam_score
+                is_completed = best_exam_score >= 90
+
+            elif achievement.key == "quiz_100":
+                best_quiz_score = max([x.score or 0 for x in quiz_attempts], default=0)
+                progress_value = best_quiz_score
+                is_completed = best_quiz_score >= 100
+
+            elif achievement.key == "first_practice_drill":
+                progress_value = len(practice_attempts)
+                is_completed = len(practice_attempts) >= 1
+
+            elif achievement.key == "hundred_points_day":
+                progress_value = today_points
+                is_completed = today_points >= 100
+
+            elif achievement.key == "three_verified_exams":
+                progress_value = len(verified_exams)
+                is_completed = len(verified_exams) >= 3
 
             else:
                 continue

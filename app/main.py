@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-
+from fastapi.middleware.cors import CORSMiddleware
 from app.api.router import api_router
 from app.core.cors import setup_cors
 from app.core.exceptions import AppError
@@ -11,6 +11,17 @@ app = FastAPI(title="CodeForge API")
 app.add_middleware(RequestContextMiddleware)
 setup_cors(app)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://codeforgeapp.com",
+        "https://www.codeforgeapp.com",
+        "http://localhost:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.exception_handler(AppError)
 async def app_error_handler(request: Request, exc: AppError):
