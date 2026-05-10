@@ -12,3 +12,5 @@ python-multipart
 email-validator
 openai
 httpx
+asyncpg
+psycopg2-binary
