@@ -141,3 +141,28 @@ textarea {
 .cf-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(167, 139, 250, 0.65);
 }
+
+.legal-content h2 {
+  font-size: 1.5rem;
+  font-weight: 900;
+  margin-top: 3rem;
+  margin-bottom: 1rem;
+  color: white;
+}
+
+.legal-content p {
+  color: rgba(255,255,255,0.78);
+}
+
+.legal-content ul {
+  padding-left: 1.25rem;
+}
+
+.legal-content li {
+  margin-bottom: 0.5rem;
+  color: rgba(255,255,255,0.75);
+}
+
+.legal-content strong {
+  color: white;
+}

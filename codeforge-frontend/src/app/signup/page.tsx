@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+
 import { api } from "@/lib/api";
 
 export default function SignupPage() {
@@ -10,12 +11,15 @@ export default function SignupPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
+  const [acceptedPolicies, setAcceptedPolicies] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
   const [successText, setSuccessText] = useState("");
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
     setLoading(true);
     setErrorText("");
     setSuccessText("");
@@ -34,6 +38,7 @@ export default function SignupPage() {
       setEmail("");
       setUsername("");
       setPassword("");
+      setAcceptedPolicies(false);
     } catch (error: any) {
       const detail =
         error?.response?.data?.detail ||
@@ -49,6 +54,7 @@ export default function SignupPage() {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--cf-bg)] px-6 py-10">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(139,92,246,0.14),transparent_30%)]" />
+
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(139,92,246,0.10),transparent_26%)]" />
 
       <div className="relative w-full max-w-md">
@@ -124,6 +130,44 @@ export default function SignupPage() {
               />
             </div>
 
+            <label className="flex items-start gap-3 rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-3 text-sm text-white/65">
+              <input
+                type="checkbox"
+                checked={acceptedPolicies}
+                onChange={(e) => setAcceptedPolicies(e.target.checked)}
+                className="mt-1"
+              />
+
+              <span>
+                I agree to the{" "}
+
+                <Link
+                  href="/legal/terms"
+                  className="text-[#8b5cf6] hover:text-white"
+                >
+                  Terms of Service
+                </Link>
+
+                ,{" "}
+
+                <Link
+                  href="/legal/privacy"
+                  className="text-[#8b5cf6] hover:text-white"
+                >
+                  Privacy Policy
+                </Link>
+
+                {" "}and{" "}
+
+                <Link
+                  href="/legal/refund"
+                  className="text-[#8b5cf6] hover:text-white"
+                >
+                  Refund Policy
+                </Link>
+              </span>
+            </label>
+
             {errorText ? (
               <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
                 {errorText}
@@ -138,10 +182,13 @@ export default function SignupPage() {
 
             <button
               type="submit"
-              disabled={loading}
-              className="relative w-full overflow-hidden rounded-2xl border border-violet-400/20 bg-violet-500/15 px-4 py-3.5 text-sm font-semibold text-violet-100 transition duration-300 hover:bg-violet-500/25 hover:text-[var(--cf-text)] hover:shadow-[0_0_24px_rgba(139,92,246,0.18)] disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={loading || !acceptedPolicies}
+              className="group relative w-full overflow-hidden rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 text-sm font-semibold text-white backdrop-blur-xl transition duration-300 hover:border-violet-400/40 hover:bg-violet-500/15 hover:shadow-[0_0_35px_rgba(139,92,246,0.28)] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <span className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),transparent)] opacity-80" />
+              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.22),rgba(255,255,255,0.02))]" />
+
+              <div className="absolute -left-10 top-0 h-full w-12 rotate-12 bg-white/10 blur-xl transition-all duration-700 group-hover:left-[120%]" />
+
               <span className="relative z-10">
                 {loading ? "Creating account..." : "Create account"}
               </span>

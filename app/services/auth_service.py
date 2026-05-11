@@ -55,12 +55,43 @@ class AuthService:
         )
 
         token = create_email_token(user.email)
-        verify_link = f"http://127.0.0.1:8000/api/v1/auth/verify-email?token={token}"
+
+        verify_link = (
+            f"{settings.FRONTEND_URL}/verify-email?token={token}"
+        )
 
         self.email_service.send_email(
             user.email,
             "Verify your email",
-            f"<h3>Click to verify your email</h3><p><a href='{verify_link}'>Verify Email</a></p>",
+            f"""
+            <div style="background:#0a0a12;padding:40px;font-family:Arial,sans-serif;color:white">
+                <h2 style="color:#a855f7;">CodeForge Email Verification</h2>
+
+                <p>
+                    Verify your email to activate your CodeForge account.
+                </p>
+
+                <a
+                    href="{verify_link}"
+                    style="
+                        display:inline-block;
+                        margin-top:20px;
+                        padding:14px 24px;
+                        border-radius:14px;
+                        background:#7c3aed;
+                        color:white;
+                        text-decoration:none;
+                        font-weight:bold;
+                    "
+                >
+                    Verify Email
+                </a>
+
+                <p style="margin-top:30px;color:#999;font-size:14px;">
+                    If you didn’t create this account, simply ignore this email.
+                </p>
+            </div>
+            """,
         )
 
         await self.audit_service.log(
