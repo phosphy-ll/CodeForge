@@ -16,6 +16,7 @@ app.add_middleware(
     allow_origins=[
         "https://codeforgeapp.com",
         "https://www.codeforgeapp.com",
+        "https://code-forge.vercel.app",
         "http://localhost:3000",
     ],
     allow_credentials=True,
