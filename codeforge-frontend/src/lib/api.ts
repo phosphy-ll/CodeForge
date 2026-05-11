@@ -6,7 +6,7 @@ const API_URL =
   "https://codeforge-production-b75c.up.railway.app/api/v1";
 
 export const api = axios.create({
-  baseURL: API_URL,
+  baseURL: "https://codeforge-production-b75c.up.railway.app/api/v1",
   headers: {
     "Content-Type": "application/json",
   },
