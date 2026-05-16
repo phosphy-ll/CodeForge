@@ -18,6 +18,7 @@ from app.api.v1.notifications import router as notifications_router
 from app.api.v1.internal import router as internal_router
 from app.api.v1.practice import router as practice_router
 from app.api.v1.exams import router as exams_router
+from app.api.v1.billing import router as billing_router
 
 api_router = APIRouter()
 
@@ -39,3 +40,4 @@ api_router.include_router(notifications_router)
 api_router.include_router(internal_router)
 api_router.include_router(practice_router)
 api_router.include_router(exams_router)
+api_router.include_router(billing_router)

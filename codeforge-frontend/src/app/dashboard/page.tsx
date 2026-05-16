@@ -167,7 +167,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="space-y-8">
+    <main data-tour="dashboard-main" className="space-y-8">
       <Header />
 
       <section className="relative overflow-hidden rounded-[36px] border border-[var(--cf-border)] bg-[var(--cf-card)] p-7 shadow-[0_24px_90px_rgba(0,0,0,0.26)]">

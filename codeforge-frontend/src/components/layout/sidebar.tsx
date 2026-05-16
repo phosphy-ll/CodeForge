@@ -85,7 +85,7 @@ export default function Sidebar() {
       onMouseEnter={() => setExpanded(true)}
       onMouseLeave={() => setExpanded(false)}
       className={[
-        "fixed left-0 top-0 z-50 flex h-screen flex-col overflow-hidden border-r border-[var(--cf-border)] bg-[var(--cf-bg-secondary)]",
+        "fixed left-0 top-0 z-50 hidden h-screen flex-col overflow-hidden border-r border-[var(--cf-border)] bg-[var(--cf-bg-secondary)] md:flex",
         "transition-all duration-300",
         expanded ? "w-72" : "w-20",
       ].join(" ")}

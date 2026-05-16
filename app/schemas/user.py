@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr
-
+from pydantic import Field
 from app.domain.enums import SubscriptionTier, UserRole
 
 
@@ -12,6 +12,8 @@ class UserResponse(BaseModel):
     id: int
     email: EmailStr
     username: str
+    avatar_url: str | None = None
+    bio: str | None = None
     is_email_verified: bool
     role: UserRole
     subscription_tier: SubscriptionTier
@@ -45,3 +47,8 @@ class UserSettingsUpdate(BaseModel):
     timezone: str | None = None
     daily_reminder_hour: int | None = None
     streak_warning_hour: int | None = None
+
+class UserProfileUpdate(BaseModel):
+    username: str | None = Field(default=None, min_length=3, max_length=50)
+    avatar_url: str | None = Field(default=None, max_length=500)
+    bio: str | None = Field(default=None, max_length=300)

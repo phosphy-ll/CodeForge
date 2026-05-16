@@ -6,7 +6,15 @@ from app.core.cors import setup_cors
 from app.core.exceptions import AppError
 from app.core.middleware import RequestContextMiddleware
 
-app = FastAPI(title="CodeForge API")
+from app.core.config import get_settings
+
+settings = get_settings()
+
+app = FastAPI(
+    docs_url=None if not settings.DEBUG else "/docs",
+    redoc_url=None if not settings.DEBUG else "/redoc",
+    openapi_url=None if not settings.DEBUG else "/openapi.json",
+)
 
 app.add_middleware(RequestContextMiddleware)
 setup_cors(app)

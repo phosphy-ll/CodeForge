@@ -163,7 +163,7 @@ export default function RoadmapPage() {
 
   if (goals.length === 0) {
     return (
-      <main className="space-y-8">
+      <main data-tour="roadmap-main" className="space-y-8">
         <Header />
 
         <section className="rounded-[36px] border border-[var(--cf-border)] bg-[var(--cf-card)] p-8">

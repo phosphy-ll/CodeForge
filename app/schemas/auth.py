@@ -33,3 +33,10 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+
+class VerifyEmailCodeRequest(BaseModel):
+    email: EmailStr
+    code: str = Field(min_length=6, max_length=6)
+
+class ResendVerificationCodeRequest(BaseModel):
+    email: EmailStr

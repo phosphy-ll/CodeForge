@@ -44,3 +44,11 @@ class UserRepository:
         await self.session.commit()
         await self.session.refresh(user)
         return user
+
+    async def update_profile(self, user: User, data: dict) -> User:
+        for field, value in data.items():
+            setattr(user, field, value)
+
+        await self.session.commit()
+        await self.session.refresh(user)
+        return user

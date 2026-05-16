@@ -46,6 +46,31 @@ class AchievementService:
             )
         )
 
+    async def issue_beta_tester_system(self, user_id: int):
+        achievement = await self.repo.get_by_key("beta_tester")
+        if not achievement:
+            raise ValueError("Achievement beta_tester not found")
+
+        existing = await self.repo.get_user_achievement(user_id, achievement.id)
+        if existing:
+            if not existing.is_completed:
+                existing.progress_value = 1
+                existing.is_completed = True
+                existing.unlocked_at = datetime.now(timezone.utc)
+                await self.repo.update_user_achievement(existing)
+
+            return existing
+
+        return await self.repo.create_user_achievement(
+            UserAchievement(
+                user_id=user_id,
+                achievement_id=achievement.id,
+                progress_value=1,
+                is_completed=True,
+                unlocked_at=datetime.now(timezone.utc),
+            )
+        )
+
     async def evaluate_user_achievements(self, user_id: int):
         achievements = await self.repo.get_all_active()
 

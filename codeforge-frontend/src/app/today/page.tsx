@@ -161,7 +161,7 @@ export default function TodayPage() {
   }
 
   return (
-    <main className="space-y-8">
+    <main data-tour="today-tasks" className="space-y-8">
       <Header />
 
       {error ? <ErrorBox text={error} /> : null}

@@ -103,7 +103,16 @@ class DailyService:
         milestone = await self._get_first_available_milestone(goal.id)
 
         if not milestone:
-            raise ValueError("No milestone found for active goal")
+            milestone = Milestone(
+                goal_id=goal.id,
+                title="Foundation",
+                order=1,
+                status="available",
+            )
+
+            self.session.add(milestone)
+            await self.session.commit()
+            await self.session.refresh(milestone)
 
         limits = get_user_limits(user)
 
@@ -484,7 +493,16 @@ class DailyService:
         milestone = await self._get_first_available_milestone(goal.id)
 
         if not milestone:
-            raise ValueError("No milestone found for active goal")
+            milestone = Milestone(
+                goal_id=goal.id,
+                title="Foundation",
+                order=1,
+                status="available",
+            )
+
+            self.session.add(milestone)
+            await self.session.commit()
+            await self.session.refresh(milestone)
 
         refreshed_plan = await self._rebuild_existing_plan_with_ai(
             user=user,
@@ -508,7 +526,16 @@ class DailyService:
         milestone = await self._get_first_available_milestone(goal.id)
 
         if not milestone:
-            raise ValueError("No milestone found for active goal")
+            milestone = Milestone(
+                goal_id=goal.id,
+                title="Foundation",
+                order=1,
+                status="available",
+            )
+
+            self.session.add(milestone)
+            await self.session.commit()
+            await self.session.refresh(milestone)
 
         limits = get_user_limits(user)
 

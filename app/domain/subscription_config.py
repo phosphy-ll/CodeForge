@@ -3,6 +3,7 @@ from app.domain.languages import (
     STARTER_LANGUAGES,
     PLUS_LANGUAGES,
 )
+import os
 SUBSCRIPTION_CONFIG = {
     "free": {
         "max_active_goals": 1,
@@ -72,5 +73,70 @@ SUBSCRIPTION_CONFIG = {
         "allowed_languages": ["*"],
         "custom_language_allowed": True,
         "quiz_generations_per_day": 12,
+    },
+}
+SUBSCRIPTION_PRICING = {
+    "starter": {
+        "label": "Starter",
+        "base_price_usd": 6.5,
+        "price_usd": 5.0,
+    },
+    "plus": {
+        "label": "Plus",
+        "base_price_usd": 12.5,
+        "price_usd": 10.0,
+    },
+    "ultra": {
+        "label": "Ultra",
+        "base_price_usd": 25.0,
+        "price_usd": 20.0,
+    },
+}
+
+for tier, pricing in SUBSCRIPTION_PRICING.items():
+    base = pricing["base_price_usd"]
+    price = pricing["price_usd"]
+
+    pricing["discount_percent"] = round(((base - price) / base) * 100)
+
+BETA_PACK = {
+    "key": "beta",
+    "label": "Founding Beta Access",
+    "price_usd": 20.0,
+    "included_tier": "ultra",
+    "included_months": 2,
+    "achievement_code": "beta_tester",
+}
+
+BETA_PACK["base_value_usd"] = (
+    SUBSCRIPTION_PRICING["ultra"]["base_price_usd"]
+    * BETA_PACK["included_months"]
+)
+
+BETA_PACK["discount_percent"] = round(
+    ((BETA_PACK["base_value_usd"] - BETA_PACK["price_usd"])
+    / BETA_PACK["base_value_usd"]) * 100
+)
+
+SUBSCRIPTION_META = {
+    "starter": {
+        "price": 5,
+        "original_price": 6.5,
+        "polar_product_id": os.getenv("POLAR_STARTER_PRODUCT_ID"),
+    },
+    "plus": {
+        "price": 10,
+        "original_price": 12.5,
+        "polar_product_id": os.getenv("POLAR_PLUS_PRODUCT_ID"),
+    },
+    "ultra": {
+        "price": 20,
+        "original_price": 25,
+        "polar_product_id": os.getenv("POLAR_ULTRA_PRODUCT_ID"),
+    },
+    "beta": {
+        "price": 25,
+        "original_price": 50,
+        "polar_product_id": os.getenv("POLAR_BETA_PRODUCT_ID"),
     },
 }

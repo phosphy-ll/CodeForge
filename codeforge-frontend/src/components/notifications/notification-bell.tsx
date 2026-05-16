@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 
@@ -22,11 +22,12 @@ export default function NotificationBell() {
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const initializedRef = useRef(false);
 
   async function loadNotifications() {
-    try {
-      setLoading(true);
+    if (loading) return;
 
+    try {
       const [itemsResponse, countResponse] = await Promise.all([
         api.get("/notifications"),
         api.get("/notifications/unread-count"),
@@ -43,13 +44,19 @@ export default function NotificationBell() {
   }
 
   useEffect(() => {
+    if (initializedRef.current) return;
+
+    initializedRef.current = true;
+
     loadNotifications();
 
     const interval = window.setInterval(() => {
       loadNotifications();
     }, 30000);
 
-    return () => window.clearInterval(interval);
+    return () => {
+      window.clearInterval(interval);
+    };
   }, []);
 
   async function handleOpenNotification(item: NotificationItem) {

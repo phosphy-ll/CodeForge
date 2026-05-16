@@ -4,17 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Brain,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   Crown,
   Flame,
   Gem,
-  Languages,
   Lock,
   RefreshCw,
   Shield,
   Sparkles,
   Target,
+  Trophy,
   Zap,
 } from "lucide-react";
 
@@ -35,7 +33,34 @@ type MeResponse = {
   subscription_tier: string;
 };
 
+type CheckoutResponse = {
+  url?: string;
+  error?: string;
+};
+
 const TIER_ORDER = ["free", "starter", "plus", "ultra"];
+
+const BASE_PRICES: Record<string, number> = {
+  starter: 6.5,
+  plus: 12.5,
+  ultra: 25,
+};
+
+const BETA_PACK = {
+  tier: "beta",
+  title: "Founding Beta Access",
+  price: 25,
+  value: 50,
+  discount: 50,
+  description:
+    "One-time beta pack: 2 months of Ultra, permanent Beta Tester achievement, and early supporter status.",
+  features: [
+    "2 months of CodeForge Ultra",
+    "Permanent Beta Tester achievement",
+    "Early supporter status",
+    "No monthly commitment",
+  ],
+};
 
 const PLAN_OVERRIDES: Record<string, Record<string, any>> = {
   free: {
@@ -61,20 +86,7 @@ const PLAN_OVERRIDES: Record<string, Record<string, any>> = {
     ai_coach_enabled: true,
     precheck_enabled: true,
     adaptive_tasks_enabled: true,
-    allowed_languages: [
-      "Python",
-      "Java",
-      "JavaScript",
-      "C++",
-      "Kotlin",
-      "Go",
-      "TypeScript",
-      "C#",
-      "PHP",
-      "Ruby",
-      "Swift",
-      "Rust",
-    ],
+    allowed_languages: ["Python", "Java", "JavaScript", "C++", "Kotlin", "Go", "TypeScript", "C#"],
     custom_language_allowed: false,
     quiz_generations_per_day: 9,
   },
@@ -92,8 +104,8 @@ const PLAN_OVERRIDES: Record<string, Record<string, any>> = {
 export default function SubscriptionPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [currentTier, setCurrentTier] = useState("free");
-  const [expandedLanguages, setExpandedLanguages] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -103,12 +115,10 @@ export default function SubscriptionPage() {
       setError("");
 
       const plansResponse = await api.get<Plan[]>("/subscription-plans");
-
       setPlans(plansResponse.data);
 
       try {
         const meResponse = await api.get<MeResponse>("/auth/me");
-
         setCurrentTier(meResponse.data.subscription_tier || "free");
         setIsAuthenticated(true);
       } catch {
@@ -116,12 +126,34 @@ export default function SubscriptionPage() {
         setIsAuthenticated(false);
       }
     } catch (err: any) {
-      setError(
-        err?.response?.data?.detail ||
-        "Failed to load subscription plans."
-      );
+      setError(err?.response?.data?.detail || "Failed to load subscription plans.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function openCheckout(tier: string) {
+    try {
+      setCheckoutLoading(tier);
+      setError("");
+
+      const response = await api.post<CheckoutResponse>("/billing/checkout", {
+        tier,
+      });
+
+      if (!response.data.url) {
+        throw new Error(response.data.error || "Checkout URL was not returned.");
+      }
+
+      window.location.href = response.data.url;
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.detail ||
+          err?.message ||
+          "Failed to open checkout."
+      );
+    } finally {
+      setCheckoutLoading(null);
     }
   }
 
@@ -136,9 +168,7 @@ export default function SubscriptionPage() {
       .sort((a, b) => TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier))
       .filter((plan) => {
         if (!isAuthenticated) return true;
-
-        const planIndex = TIER_ORDER.indexOf(plan.tier);
-        return planIndex >= currentIndex;
+        return TIER_ORDER.indexOf(plan.tier) >= currentIndex;
       })
       .map((plan) => ({
         ...plan,
@@ -149,70 +179,67 @@ export default function SubscriptionPage() {
       }));
   }, [plans, currentTier, isAuthenticated]);
 
-  function toggleLanguages(tier: string) {
-    setExpandedLanguages((prev) => ({
-      ...prev,
-      [tier]: !prev[tier],
-    }));
-  }
-
   return (
-    <main className="space-y-8">
+    <main className="space-y-6">
       <header>
-        <p className="text-sm font-black uppercase tracking-[0.24em] text-[var(--cf-accent)]">
+        <p className="text-xs font-black uppercase tracking-[0.24em] text-[var(--cf-accent)]">
           Subscription
         </p>
 
-        <h1 className="mt-2 text-4xl font-black tracking-tight text-[var(--cf-text)]">
+        <h1 className="mt-2 text-3xl font-black tracking-tight text-[var(--cf-text)] md:text-5xl">
           Choose your execution level
         </h1>
 
         <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--cf-text-secondary)]">
-          Upgrade when you need more pressure, more AI analysis, more languages,
-          stronger feedback, and faster execution growth.
+          Upgrade for more pressure, stronger AI feedback, more languages, and faster execution growth.
         </p>
       </header>
 
       {error ? <ErrorBox text={error} /> : null}
 
-      <section className="relative overflow-hidden rounded-[38px] border border-[var(--cf-border)] bg-[var(--cf-card)] p-7 shadow-[0_24px_90px_rgba(0,0,0,0.26)]">
+      <BetaCard
+        loading={checkoutLoading === "beta"}
+        onCheckout={() => openCheckout("beta")}
+      />
+
+      <section className="relative overflow-hidden rounded-[30px] border border-[var(--cf-border)] bg-[var(--cf-card)] p-5 shadow-[0_20px_70px_rgba(0,0,0,0.24)] md:rounded-[38px] md:p-7">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(124,92,255,0.22),transparent_35%)]" />
 
-        <div className="relative flex flex-wrap items-start justify-between gap-6">
+        <div className="relative flex flex-wrap items-start justify-between gap-5">
           <div>
             <div className="flex items-center gap-3 text-[var(--cf-accent)]">
               <Crown className="h-5 w-5" />
-              <p className="text-sm font-black uppercase tracking-[0.2em]">
+              <p className="text-xs font-black uppercase tracking-[0.2em]">
                 Current plan: {format(currentTier)}
               </p>
             </div>
 
-            <h2 className="mt-4 text-5xl font-black text-[var(--cf-text)]">
+            <h2 className="mt-3 text-3xl font-black text-[var(--cf-text)] md:text-5xl">
               {currentTier === "ultra" ? "You are maxed out." : "Upgrade path"}
             </h2>
 
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--cf-text-secondary)]">
+            <p className="mt-2 max-w-3xl text-sm leading-7 text-[var(--cf-text-secondary)]">
               {currentTier === "ultra"
-                ? "Ultra already unlocks maximum pressure, hardcore mode, highest limits, and any-language flexibility."
-                : "Lower tiers are hidden. You only see your current plan and available upgrades."}
+                ? "Ultra already unlocks maximum execution depth."
+                : "Lower tiers are hidden. You see your current plan and available upgrades."}
             </p>
           </div>
 
           <LiquidGlassButton onClick={loadData} disabled={loading}>
-            {loading ? "Refreshing..." : "Refresh plans"}
+            {loading ? "Refreshing..." : "Refresh"}
             <RefreshCw className="ml-2 h-4 w-4" />
           </LiquidGlassButton>
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-4">
         {visiblePlans.map((plan) => (
           <PlanCard
             key={plan.id}
             plan={plan}
             currentTier={currentTier}
-            languagesExpanded={!!expandedLanguages[plan.tier]}
-            onToggleLanguages={() => toggleLanguages(plan.tier)}
+            loading={checkoutLoading === plan.tier}
+            onCheckout={() => openCheckout(plan.tier)}
           />
         ))}
       </section>
@@ -220,176 +247,198 @@ export default function SubscriptionPage() {
   );
 }
 
+function BetaCard({
+  loading,
+  onCheckout,
+}: {
+  loading: boolean;
+  onCheckout: () => void;
+}) {
+  return (
+    <section className="relative overflow-hidden rounded-[32px] border border-amber-300/35 bg-[linear-gradient(135deg,rgba(251,191,36,0.14),rgba(124,92,255,0.22),rgba(17,17,26,0.98))] p-5 shadow-[0_0_60px_rgba(251,191,36,0.12)] md:p-7">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.20),transparent_35%)]" />
+
+      <div className="relative grid gap-5 lg:grid-cols-[1.3fr_0.7fr] lg:items-center">
+        <div>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-300/40 bg-amber-300/10 text-amber-200 shadow-[0_0_28px_rgba(251,191,36,0.26)]">
+              <Trophy className="h-6 w-6" />
+            </div>
+
+            <Badge text="One-time beta access" variant="gold" />
+            <Badge text={`Save ${BETA_PACK.discount}%`} variant="gold" />
+          </div>
+
+          <h2 className="mt-5 text-3xl font-black text-[var(--cf-text)] md:text-5xl">
+            {BETA_PACK.title}
+          </h2>
+
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--cf-text-secondary)]">
+            {BETA_PACK.description}
+          </p>
+
+          <div className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-4">
+            {BETA_PACK.features.map((feature) => (
+              <div
+                key={feature}
+                className="rounded-2xl border border-amber-300/15 bg-black/18 px-3 py-3 text-xs font-bold leading-5 text-amber-100/90"
+              >
+                {feature}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-[26px] border border-white/10 bg-black/20 p-5 backdrop-blur-xl">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-200">
+            Beta deal
+          </p>
+
+          <div className="mt-3 flex items-end gap-3">
+            <p className="text-5xl font-black text-[var(--cf-text)]">
+              ${BETA_PACK.price}
+            </p>
+            <div className="mb-2">
+              <p className="text-sm text-[var(--cf-text-muted)] line-through">
+                ${BETA_PACK.value}
+              </p>
+              <p className="text-xs font-bold text-amber-200">one-time</p>
+            </div>
+          </div>
+
+          <LiquidGlassButton
+            className="mt-5 w-full justify-center shadow-[0_0_34px_rgba(251,191,36,0.20)]"
+            onClick={onCheckout}
+            disabled={loading}
+          >
+            {loading ? "Opening..." : "Get Beta Access"}
+            <Sparkles className="ml-2 h-4 w-4" />
+          </LiquidGlassButton>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function PlanCard({
   plan,
   currentTier,
-  languagesExpanded,
-  onToggleLanguages,
+  loading,
+  onCheckout,
 }: {
   plan: Plan;
   currentTier: string;
-  languagesExpanded: boolean;
-  onToggleLanguages: () => void;
+  loading: boolean;
+  onCheckout: () => void;
 }) {
   const features = plan.features_json || {};
   const isCurrent = plan.tier === currentTier;
   const isPopular = plan.tier === "plus";
   const isUltra = plan.tier === "ultra";
+  const basePrice = BASE_PRICES[plan.tier];
+  const discount =
+    basePrice && plan.price_usd < basePrice
+      ? Math.round(((basePrice - plan.price_usd) / basePrice) * 100)
+      : plan.discount_percent || 0;
 
   return (
     <article
       className={[
-        "group relative overflow-hidden rounded-[36px] border p-5 shadow-[0_20px_80px_rgba(0,0,0,0.24)] transition-all duration-300",
+        "group relative min-h-[360px] overflow-hidden rounded-[26px] border p-4 shadow-[0_16px_55px_rgba(0,0,0,0.22)] transition-all duration-300 md:rounded-[32px] md:p-5",
         isUltra
-          ? "border-amber-300/35 bg-[linear-gradient(135deg,rgba(251,191,36,0.13),rgba(124,92,255,0.22),rgba(17,17,26,0.98))] shadow-[0_0_45px_rgba(251,191,36,0.12)]"
+          ? "border-amber-300/35 bg-[linear-gradient(135deg,rgba(251,191,36,0.12),rgba(124,92,255,0.18),rgba(17,17,26,0.98))]"
           : isPopular || isCurrent
           ? "border-[var(--cf-primary)]/40 bg-[linear-gradient(135deg,rgba(124,92,255,0.18),rgba(17,17,26,0.96))]"
           : "border-[var(--cf-border)] bg-[var(--cf-card)]",
       ].join(" ")}
     >
-      {isUltra ? (
-        <div className="pointer-events-none absolute inset-0 animate-pulse bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_32%)]" />
-      ) : (
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(124,92,255,0.18),transparent_34%)]" />
-      )}
-
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-1/3 top-[-50%] h-[220%] w-[40%] rotate-12 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.14),transparent)] opacity-0 blur-xl transition-all duration-700 group-hover:left-[120%] group-hover:opacity-100" />
-      </div>
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(124,92,255,0.18),transparent_34%)]" />
 
       <div className="relative">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between gap-2">
           <div
             className={[
-              "flex h-12 w-12 items-center justify-center rounded-2xl border",
+              "flex h-10 w-10 items-center justify-center rounded-2xl border md:h-12 md:w-12",
               isUltra
-                ? "border-amber-300/40 bg-amber-300/10 text-amber-200 shadow-[0_0_28px_rgba(251,191,36,0.26)]"
+                ? "border-amber-300/40 bg-amber-300/10 text-amber-200"
                 : "border-[var(--cf-primary)]/25 bg-[var(--cf-primary)]/10 text-[var(--cf-accent)]",
             ].join(" ")}
           >
             {getPlanIcon(plan.tier)}
           </div>
 
-          <div className="flex flex-wrap justify-end gap-2">
-            {isCurrent ? <Badge text="Current plan" variant="success" /> : null}
+          <div className="flex flex-wrap justify-end gap-1">
+            {isCurrent ? <Badge text="Current" variant="success" /> : null}
             {isPopular && !isCurrent ? <Badge text="Popular" /> : null}
-            {isUltra ? <Badge text="Max power" variant="gold" /> : null}
+            {isUltra ? <Badge text="Max" variant="gold" /> : null}
+            {discount > 0 && !isCurrent ? <Badge text={`-${discount}%`} /> : null}
           </div>
         </div>
 
-        <h2 className="mt-5 text-3xl font-black text-[var(--cf-text)]">
+        <h2 className="mt-4 text-2xl font-black text-[var(--cf-text)] md:text-3xl">
           {format(plan.tier)}
         </h2>
 
-        <div className="mt-4 flex items-end gap-2">
-          <p className="text-5xl font-black text-[var(--cf-text)]">
+        <div className="mt-3 flex flex-wrap items-end gap-2">
+          <p className="text-4xl font-black text-[var(--cf-text)] md:text-5xl">
             ${plan.price_usd}
           </p>
-          <p className="mb-3 text-sm text-[var(--cf-text-muted)]">/mo</p>
+          <p className="mb-2 text-xs text-[var(--cf-text-muted)] md:text-sm">/mo</p>
+
+          {basePrice && basePrice > plan.price_usd ? (
+            <p className="mb-2 text-xs text-[var(--cf-text-muted)] line-through">
+              ${basePrice}
+            </p>
+          ) : null}
         </div>
 
-        <p className="mt-3 min-h-[48px] text-sm leading-6 text-[var(--cf-text-secondary)]">
+        <p className="mt-3 min-h-[44px] text-xs leading-5 text-[var(--cf-text-secondary)] md:text-sm md:leading-6">
           {getPlanPitch(plan.tier)}
         </p>
 
-        <div className="mt-6">
+        <div className="mt-5">
           <LiquidGlassButton
-            className={[
-              "w-full justify-center",
-              isUltra ? "shadow-[0_0_30px_rgba(251,191,36,0.20)]" : "",
-            ].join(" ")}
-            disabled={isCurrent}
+            className="w-full justify-center px-3 py-3 text-xs md:text-sm"
+            disabled={isCurrent || loading || plan.tier === "free"}
             onClick={() => {
-              if (isCurrent) return;
-
-              // Later: replace with Paddle checkout call.
-              console.log("TODO: open Paddle checkout for", plan.tier);
+              if (isCurrent || plan.tier === "free") return;
+              onCheckout();
             }}
           >
-            {isCurrent ? "Current plan" : `Upgrade to ${format(plan.tier)}`}
+            {loading
+              ? "Opening..."
+              : isCurrent
+              ? "Current"
+              : plan.tier === "free"
+              ? "Free"
+              : `Upgrade`}
             <Sparkles className="ml-2 h-4 w-4" />
           </LiquidGlassButton>
         </div>
 
         <div className="mt-4 space-y-2">
-          <Feature icon={<Target />} text={`${features.max_active_goals} active goal${features.max_active_goals > 1 ? "s" : ""}`} />
-          <Feature icon={<Flame />} text={`${features.daily_tasks_min}-${features.daily_tasks_max} daily tasks`} />
-          <Feature icon={<Zap />} text={`${features.max_daily_points} max daily points`} />
-          <Feature icon={<Brain />} text={`${format(features.ai_level)} AI level`} />
-          <Feature icon={<Sparkles />} text={`${features.ai_requests_per_day} AI requests/day`} />
-          <Feature icon={<Shield />} text={`${features.quiz_generations_per_day} quiz generations/day`} />
-
-          <LanguagesBox
-            languages={features.allowed_languages || []}
-            customAllowed={!!features.custom_language_allowed}
-            expanded={languagesExpanded}
-            onToggle={onToggleLanguages}
-          />
+          <CompactFeature icon={<Target />} text={`${features.max_active_goals} goal${features.max_active_goals > 1 ? "s" : ""}`} />
+          <CompactFeature icon={<Flame />} text={`${features.daily_tasks_min}-${features.daily_tasks_max} tasks/day`} />
+          <CompactFeature icon={<Zap />} text={`${features.max_daily_points} pts/day`} />
+          <CompactFeature icon={<Brain />} text={`${format(features.ai_level)} AI`} />
+          <CompactFeature icon={<Sparkles />} text={`${features.ai_requests_per_day} AI req/day`} />
+          <CompactFeature icon={<Shield />} text={`${features.quiz_generations_per_day} quizzes/day`} />
 
           <BooleanFeature enabled={features.weakness_map} text="Weakness map" />
-          <BooleanFeature enabled={features.ai_coach_enabled} text="AI Coach chat" />
-          <BooleanFeature enabled={features.precheck_enabled} text="Precheck flow" />
-          <BooleanFeature enabled={features.adaptive_difficulty} text="Adaptive difficulty" />
-          <BooleanFeature enabled={features.adaptive_tasks_enabled} text="Adaptive tasks" />
-          <BooleanFeature enabled={features.hardcore_allowed} text="Hardcore mode" />
+          <BooleanFeature enabled={features.ai_coach_enabled} text="AI Coach" />
+          <BooleanFeature enabled={features.precheck_enabled} text="Precheck" />
+          <BooleanFeature enabled={features.hardcore_allowed} text="Hardcore" />
         </div>
       </div>
     </article>
   );
 }
 
-function LanguagesBox({
-  languages,
-  customAllowed,
-  expanded,
-  onToggle,
-}: {
-  languages: string[];
-  customAllowed: boolean;
-  expanded: boolean;
-  onToggle: () => void;
-}) {
-  const visibleLanguages = expanded ? languages : languages.slice(0, 4);
-
+function CompactFeature({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--cf-border)] bg-black/15 p-3">
-      <button
-        onClick={onToggle}
-        className="flex w-full items-center justify-between gap-3 text-left text-sm text-[var(--cf-text-secondary)]"
-      >
-        <span className="flex items-center gap-3">
-          <Languages className="h-4 w-4 text-[var(--cf-accent)]" />
-          {customAllowed ? "Any language" : `${languages.length} languages`}
-        </span>   
-
-        {expanded ? (
-          <ChevronUp className="h-4 w-4 text-[var(--cf-text-muted)]" />
-        ) : (
-          <ChevronDown className="h-4 w-4 text-[var(--cf-text-muted)]" />
-        )}
-      </button>
-
-      {expanded ? (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {visibleLanguages.map((language) => (
-            <span
-              key={language}
-              className="rounded-full border border-[var(--cf-primary)]/20 bg-[var(--cf-primary)]/10 px-3 py-1 text-xs font-bold text-[var(--cf-accent)]"
-            >
-              {language}
-            </span>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function Feature({ icon, text }: { icon: React.ReactNode; text: string }) {
-  return (
-    <div className="flex items-center gap-2 rounded-2xl border border-[var(--cf-border)] bg-black/15 px-3 py-2 text-sm text-[var(--cf-text-secondary)]">
+    <div className="flex items-center gap-2 rounded-2xl border border-[var(--cf-border)] bg-black/15 px-3 py-2 text-xs text-[var(--cf-text-secondary)] md:text-sm">
       <span className="text-[var(--cf-accent)] [&>svg]:h-4 [&>svg]:w-4">{icon}</span>
-      {text}
+      <span className="truncate">{text}</span>
     </div>
   );
 }
@@ -398,14 +447,14 @@ function BooleanFeature({ enabled, text }: { enabled: boolean; text: string }) {
   return (
     <div
       className={[
-        "flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm",
+        "flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs md:text-sm",
         enabled
           ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
           : "border-[var(--cf-border)] bg-black/15 text-[var(--cf-text-muted)]",
       ].join(" ")}
     >
-      {enabled ? <CheckCircle2 className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-      {text}
+      {enabled ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <Lock className="h-4 w-4 shrink-0" />}
+      <span className="truncate">{text}</span>
     </div>
   );
 }
@@ -420,7 +469,7 @@ function Badge({
   return (
     <span
       className={[
-        "rounded-full border px-3 py-1 text-xs font-black uppercase tracking-[0.16em]",
+        "rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] md:px-3 md:text-xs",
         variant === "gold"
           ? "border-amber-300/30 bg-amber-300/10 text-amber-200"
           : variant === "success"
@@ -434,17 +483,17 @@ function Badge({
 }
 
 function getPlanIcon(tier: string) {
-  if (tier === "ultra") return <Gem className="h-7 w-7" />;
-  if (tier === "plus") return <Crown className="h-7 w-7" />;
-  if (tier === "starter") return <Flame className="h-7 w-7" />;
-  return <Shield className="h-7 w-7" />;
+  if (tier === "ultra") return <Gem className="h-5 w-5 md:h-6 md:w-6" />;
+  if (tier === "plus") return <Crown className="h-5 w-5 md:h-6 md:w-6" />;
+  if (tier === "starter") return <Flame className="h-5 w-5 md:h-6 md:w-6" />;
+  return <Shield className="h-5 w-5 md:h-6 md:w-6" />;
 }
 
 function getPlanPitch(tier: string) {
-  if (tier === "free") return "For trying CodeForge and proving basic execution.";
-  if (tier === "starter") return "For consistent learners who need more tasks and precheck.";
-  if (tier === "plus") return "Best for serious growth: AI coach, adaptive tasks, weakness map.";
-  return "Maximum pressure, hardcore mode, highest limits, gold-tier execution, and any language.";
+  if (tier === "free") return "Try CodeForge and prove basic execution.";
+  if (tier === "starter") return "More tasks, precheck, and better structure.";
+  if (tier === "plus") return "AI coach, adaptive tasks, weakness map.";
+  return "Maximum pressure, hardcore mode, any language.";
 }
 
 function ErrorBox({ text }: { text: string }) {

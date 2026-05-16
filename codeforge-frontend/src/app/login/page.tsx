@@ -4,9 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 
 import { api } from "@/lib/api";
-import { saveAccessToken } from "@/lib/auth";
+import { saveTokens } from "@/lib/auth";
 
 import BootScreen from "@/components/system/boot-screen";
 
@@ -19,6 +20,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
   const [booting, setBooting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -32,7 +34,7 @@ export default function LoginPage() {
         password,
       });
 
-      saveAccessToken(response.data.access_token);
+      saveTokens(response.data.access_token, response.data.refresh_token);
 
       setBooting(true);
     } catch (error: any) {
@@ -42,7 +44,6 @@ export default function LoginPage() {
         "Login failed. Please try again.";
 
       setErrorText(String(detail));
-
       setLoading(false);
     }
   }
@@ -55,7 +56,6 @@ export default function LoginPage() {
 
       <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--cf-bg)] px-6 py-10">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(124,92,255,0.14),transparent_30%)]" />
-
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(124,92,255,0.10),transparent_26%)]" />
 
         <div className="relative w-full max-w-md">
@@ -104,14 +104,25 @@ export default function LoginPage() {
                   Password
                 </label>
 
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="Your password"
-                  className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-[var(--cf-text)] outline-none transition duration-200 placeholder:text-[var(--cf-text)]/25 focus:border-violet-400/40 focus:bg-white/[0.05] focus:shadow-[0_0_0_4px_rgba(139,92,246,0.08)]"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    placeholder="Your password"
+                    className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3.5 pr-12 text-[var(--cf-text)] outline-none transition duration-200 placeholder:text-[var(--cf-text)]/25 focus:border-violet-400/40 focus:bg-white/[0.05] focus:shadow-[0_0_0_4px_rgba(139,92,246,0.08)]"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/45 transition hover:text-white"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
 
               {errorText ? (
@@ -126,7 +137,6 @@ export default function LoginPage() {
                 className="group relative w-full overflow-hidden rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 text-sm font-semibold text-white backdrop-blur-xl transition duration-300 hover:border-violet-400/40 hover:bg-violet-500/15 hover:shadow-[0_0_35px_rgba(139,92,246,0.28)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.22),rgba(255,255,255,0.02))]" />
-
                 <div className="absolute -left-10 top-0 h-full w-12 rotate-12 bg-white/10 blur-xl transition-all duration-700 group-hover:left-[120%]" />
 
                 <span className="relative z-10">
@@ -143,35 +153,6 @@ export default function LoginPage() {
                   className="font-bold text-[var(--cf-accent)] transition hover:opacity-80"
                 >
                   Sign up
-                </Link>
-              </p>
-
-              <p className="mt-6 text-center text-sm text-white/45">
-                By continuing you agree to our{" "}
-
-                <Link
-                  href="/legal/terms"
-                  className="text-[#8b5cf6] hover:text-white"
-                >
-                  Terms
-                </Link>
-
-                ,{" "}
-
-                <Link
-                  href="/legal/privacy"
-                  className="text-[#8b5cf6] hover:text-white"
-                >
-                  Privacy Policy
-                </Link>
-
-                {" "}and{" "}
-
-                <Link
-                  href="/legal/refund"
-                  className="text-[#8b5cf6] hover:text-white"
-                >
-                  Refund Policy
                 </Link>
               </p>
             </div>

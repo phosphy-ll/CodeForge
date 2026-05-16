@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
-import { getAccessToken, removeAccessToken } from "@/lib/auth";
+import { getAccessToken, logout } from "@/lib/auth";
 import { getMe } from "@/lib/user";
 
 type AuthGuardProps = {
@@ -13,6 +13,7 @@ type AuthGuardProps = {
 const PUBLIC_ROUTES = [
   "/login",
   "/signup",
+  "/verify-email",
   "/legal",
   "/subscription",
 ];
@@ -45,8 +46,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
         await getMe();
         setLoading(false);
       } catch {
-        removeAccessToken();
-        router.replace("/login");
+        logout();
       }
     }
 

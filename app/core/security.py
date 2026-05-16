@@ -86,20 +86,6 @@ def create_refresh_token(
         algorithm=settings.ALGORITHM,
     )
 
-
-def create_email_token(email: str) -> str:
-    payload = _build_token_payload(
-        subject=email,
-        token_type="email_verify",
-        expire_delta=timedelta(hours=24),
-    )
-    return jwt.encode(
-        payload,
-        settings.EMAIL_TOKEN_SECRET_KEY,
-        algorithm=settings.ALGORITHM,
-    )
-
-
 def create_reset_token(email: str, password_version: int) -> str:
     payload = _build_token_payload(
         subject=email,
@@ -134,18 +120,6 @@ def decode_refresh_token(token: str) -> dict[str, Any]:
         )
     except JWTError as exc:
         raise ValueError("Invalid or expired token") from exc
-
-
-def decode_email_token(token: str) -> dict[str, Any]:
-    try:
-        return jwt.decode(
-            token,
-            settings.EMAIL_TOKEN_SECRET_KEY,
-            algorithms=[settings.ALGORITHM],
-        )
-    except JWTError as exc:
-        raise ValueError("Invalid or expired token") from exc
-
 
 def decode_reset_token(token: str) -> dict[str, Any]:
     try:

@@ -7,12 +7,14 @@ from app.repositories.goal_repository import GoalRepository
 from app.schemas.goal import GoalCreate
 from app.domain.subscription import is_language_allowed_for_user
 from app.domain.languages import normalize_language
-
+from app.models.milestone import Milestone
+from app.repositories.milestone_repository import MilestoneRepository
 
 class GoalService:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
         self.goal_repo = GoalRepository(session)
+        self.milestone_repo = MilestoneRepository(session)
 
     async def create_goal(self, user: User, data: GoalCreate) -> Goal:
         limits = get_user_limits(user)
@@ -44,7 +46,18 @@ class GoalService:
             status="active",
         )
 
-        return await self.goal_repo.create(goal)
+        created_goal = await self.goal_repo.create(goal)
+
+        milestone = Milestone(
+            goal_id=created_goal.id,
+            title="Foundation",
+            order=1,
+            status="available",
+        )
+
+        await self.milestone_repo.create(milestone)
+
+        return created_goal
 
     async def get_user_goals(self, user: User):
         return await self.goal_repo.get_user_goals(user.id)

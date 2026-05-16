@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     EMAIL_TOKEN_SECRET_KEY: str
     RESET_TOKEN_SECRET_KEY: str
     CRON_SECRET: str
+    POLAR_WEBHOOK_SECRET: str
 
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
@@ -34,6 +35,12 @@ class Settings(BaseSettings):
     SMTP_PORT: int
     SMTP_USER: str
     SMTP_PASSWORD: str
+
+    POLAR_ACCESS_TOKEN: str
+    POLAR_STARTER_PRODUCT_ID: str
+    POLAR_PLUS_PRODUCT_ID: str
+    POLAR_ULTRA_PRODUCT_ID: str
+    POLAR_BETA_PRODUCT_ID: str
 
     FRONTEND_URL: str = "http://localhost:3000"
 

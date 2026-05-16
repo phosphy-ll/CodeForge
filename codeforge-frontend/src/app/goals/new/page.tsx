@@ -448,8 +448,8 @@ function StepIdentity({
       />
 
       <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
-        <div className="space-y-5">
-          <div>
+        <div data-tour="goal-title" className="space-y-5">
+          <div data-tour="goal-title">
             <Label>Goal title</Label>
             <input
               value={form.title}
@@ -472,20 +472,24 @@ function StepIdentity({
         </div>
 
         <div className="space-y-5">
-          <OptionGrid
-            title="Goal type"
-            options={GOAL_TYPES}
-            value={form.goal_type}
-            onChange={(value) => updateField("goal_type", value)}
-          />
+          <div data-tour="goal-type">
+            <OptionGrid
+              title="Goal type"
+              options={GOAL_TYPES}
+              value={form.goal_type}
+              onChange={(value) => updateField("goal_type", value)}
+            />
+          </div>
 
-          <LanguageSelector
-            value={form.language}
-            languages={allowedLanguages.languages}
-            customAllowed={allowedLanguages.custom_language_allowed}
-            tier={allowedLanguages.subscription_tier}
-            onChange={(value) => updateField("language", value)}
-          />
+          <div data-tour="goal-language">
+            <LanguageSelector
+              value={form.language}
+              languages={allowedLanguages.languages}
+              customAllowed={allowedLanguages.custom_language_allowed}
+              tier={allowedLanguages.subscription_tier}
+              onChange={(value) => updateField("language", value)}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -507,27 +511,33 @@ function StepSkill({
         text="Your roadmap depends on level, learning style, and how hard the system should push."
       />
 
-      <OptionGrid
-        title="Current level"
-        options={LEVELS}
-        value={form.declared_level}
-        onChange={(value) => updateField("declared_level", value)}
-      />
+      <div data-tour="goal-level">
+        <OptionGrid
+          title="Current level"
+          options={LEVELS}
+          value={form.declared_level}
+          onChange={(value) => updateField("declared_level", value)}
+        />
+      </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <OptionGrid
-          title="Learning style"
-          options={LEARNING_STYLES}
-          value={form.learning_style}
-          onChange={(value) => updateField("learning_style", value)}
-        />
+        <div data-tour="goal-learning-style">
+          <OptionGrid
+            title="Learning style"
+            options={LEARNING_STYLES}
+            value={form.learning_style}
+            onChange={(value) => updateField("learning_style", value)}
+          />
+        </div>
 
-        <OptionGrid
-          title="Accountability"
-          options={ACCOUNTABILITY_MODES}
-          value={form.accountability_mode}
-          onChange={(value) => updateField("accountability_mode", value)}
-        />
+        <div data-tour="goal-accountability">
+          <OptionGrid
+            title="Accountability"
+            options={ACCOUNTABILITY_MODES}
+            value={form.accountability_mode}
+            onChange={(value) => updateField("accountability_mode", value)}
+          />
+        </div>
       </div>
     </div>
   );
@@ -545,7 +555,7 @@ function StepTimeline({
   updateMonths: (months: number) => void;
 }) {
   return (
-    <div className="space-y-8">
+    <div data-tour="goal-timeline" className="space-y-8">
       <StepTitle
         icon={<Timer className="h-6 w-6" />}
         title="Set the timeline"
@@ -650,7 +660,7 @@ function StepConfirm({
   tooAggressive: boolean;
 }) {
   return (
-    <div className="space-y-8">
+    <div data-tour="goal-confirm" className="space-y-8">
       <StepTitle
         icon={<CheckCircle2 className="h-6 w-6" />}
         title="Confirm execution path"
@@ -721,7 +731,7 @@ function OptionGrid<T extends string>({
 
       <div
         className={[
-          "mt-4 grid gap-3",
+          "mt-4 grid grid-cols-2 gap-3",
           compact ? "md:grid-cols-3" : "md:grid-cols-2",
         ].join(" ")}
       >
@@ -731,9 +741,11 @@ function OptionGrid<T extends string>({
           return (
             <button
               key={option.value}
+              type="button"
+              aria-pressed={active}
               onClick={() => onChange(option.value)}
               className={[
-                "group relative overflow-hidden rounded-3xl border p-5 text-left backdrop-blur-xl transition-all duration-300",
+                "group relative overflow-hidden rounded-2xl border p-3 text-left backdrop-blur-xl transition-all duration-300 md:rounded-3xl md:p-5",
                 active
                   ? "border-[var(--cf-primary)]/40 bg-[linear-gradient(135deg,rgba(124,92,255,0.18),rgba(124,92,255,0.08))] text-[var(--cf-text)] shadow-[0_0_32px_var(--cf-glow)]"
                   : "border-[var(--cf-border)] bg-white/[0.025] text-[var(--cf-text-secondary)] hover:border-[var(--cf-primary)]/25 hover:bg-white/[0.045] hover:text-[var(--cf-text)]",
@@ -746,7 +758,7 @@ function OptionGrid<T extends string>({
               <div className="relative">
                 <div
                   className={[
-                    "flex h-11 w-11 items-center justify-center rounded-2xl border",
+                    "flex h-9 w-9 items-center justify-center rounded-xl border md:h-11 md:w-11 md:rounded-2xl",
                     active
                       ? "border-[var(--cf-primary)]/35 bg-[var(--cf-primary)]/14 text-[var(--cf-accent)]"
                       : "border-[var(--cf-border)] bg-[var(--cf-card)] text-[var(--cf-text-muted)] group-hover:text-[var(--cf-accent)]",
@@ -755,11 +767,11 @@ function OptionGrid<T extends string>({
                   {option.icon}
                 </div>
 
-                <p className="mt-4 text-lg font-black tracking-tight">
+                <p className="mt-3 text-sm font-black tracking-tight md:mt-4 md:text-lg">
                   {option.label}
                 </p>
 
-                <p className="mt-2 text-sm leading-6 text-[var(--cf-text-secondary)]">
+                <p className="mt-2 text-xs leading-5 text-[var(--cf-text-secondary)] md:text-sm md:leading-6">
                   {option.description}
                 </p>
               </div>
@@ -788,16 +800,18 @@ function LanguageSelector({
     <div>
       <Label>Language</Label>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
+      <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
         {languages.map((language) => {
           const active = value?.toLowerCase() === language.toLowerCase();
 
           return (
             <button
               key={language}
+              type="button"
+              aria-pressed={active}
               onClick={() => onChange(language)}
               className={[
-                "group relative overflow-hidden rounded-3xl border p-5 text-left backdrop-blur-xl transition-all duration-300",
+                "group relative overflow-hidden rounded-2xl border p-3 text-left backdrop-blur-xl transition-all duration-300 md:rounded-3xl md:p-5",
                 active
                   ? "border-[var(--cf-primary)]/40 bg-[linear-gradient(135deg,rgba(124,92,255,0.18),rgba(124,92,255,0.08))] text-[var(--cf-text)] shadow-[0_0_32px_var(--cf-glow)]"
                   : "border-[var(--cf-border)] bg-white/[0.025] text-[var(--cf-text-secondary)] hover:border-[var(--cf-primary)]/25 hover:bg-white/[0.045] hover:text-[var(--cf-text)]",
@@ -810,7 +824,7 @@ function LanguageSelector({
               <div className="relative">
                 <div
                   className={[
-                    "flex h-11 w-11 items-center justify-center rounded-2xl border",
+                    "flex h-9 w-9 items-center justify-center rounded-xl border md:h-11 md:w-11 md:rounded-2xl",
                     active
                       ? "border-[var(--cf-primary)]/35 bg-[var(--cf-primary)]/14 text-[var(--cf-accent)]"
                       : "border-[var(--cf-border)] bg-[var(--cf-card)] text-[var(--cf-text-muted)] group-hover:text-[var(--cf-accent)]",
@@ -819,7 +833,7 @@ function LanguageSelector({
                   <Code2 className="h-5 w-5" />
                 </div>
 
-                <p className="mt-4 text-lg font-black tracking-tight">
+                <p className="mt-3 text-sm font-black tracking-tight md:mt-4 md:text-lg">
                   {language}
                 </p>
 

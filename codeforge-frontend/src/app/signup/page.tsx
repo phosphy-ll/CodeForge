@@ -3,26 +3,30 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 
 import { api } from "@/lib/api";
 
 export default function SignupPage() {
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+
+  const [showPassword, setShowPassword] = useState(false);
 
   const [acceptedPolicies, setAcceptedPolicies] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
-  const [successText, setSuccessText] = useState("");
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     setLoading(true);
     setErrorText("");
-    setSuccessText("");
 
     try {
       await api.post("/auth/register", {
@@ -31,14 +35,9 @@ export default function SignupPage() {
         password,
       });
 
-      setSuccessText(
-        "Account created. Please verify your email before logging in."
+      router.push(
+        `/verify-email?email=${encodeURIComponent(email)}`
       );
-
-      setEmail("");
-      setUsername("");
-      setPassword("");
-      setAcceptedPolicies(false);
     } catch (error: any) {
       const detail =
         error?.response?.data?.detail ||
@@ -120,14 +119,28 @@ export default function SignupPage() {
                 Password
               </label>
 
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="Create a password"
-                className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-[var(--cf-text)] outline-none transition duration-200 placeholder:text-[var(--cf-text)]/25 focus:border-violet-400/40 focus:bg-white/[0.05] focus:shadow-[0_0_0_4px_rgba(139,92,246,0.08)]"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="Create a password"
+                  className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3.5 pr-12 text-[var(--cf-text)] outline-none transition duration-200 placeholder:text-[var(--cf-text)]/25 focus:border-violet-400/40 focus:bg-white/[0.05] focus:shadow-[0_0_0_4px_rgba(139,92,246,0.08)]"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/45 transition hover:text-white"
+                >
+                  {showPassword ? (
+                    <EyeOff size={18} />
+                  ) : (
+                    <Eye size={18} />
+                  )}
+                </button>
+              </div>
             </div>
 
             <label className="flex items-start gap-3 rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-3 text-sm text-white/65">
@@ -140,25 +153,20 @@ export default function SignupPage() {
 
               <span>
                 I agree to the{" "}
-
                 <Link
                   href="/legal/terms"
                   className="text-[#8b5cf6] hover:text-white"
                 >
                   Terms of Service
                 </Link>
-
                 ,{" "}
-
                 <Link
                   href="/legal/privacy"
                   className="text-[#8b5cf6] hover:text-white"
                 >
                   Privacy Policy
-                </Link>
-
-                {" "}and{" "}
-
+                </Link>{" "}
+                and{" "}
                 <Link
                   href="/legal/refund"
                   className="text-[#8b5cf6] hover:text-white"
@@ -171,12 +179,6 @@ export default function SignupPage() {
             {errorText ? (
               <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
                 {errorText}
-              </div>
-            ) : null}
-
-            {successText ? (
-              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-                {successText}
               </div>
             ) : null}
 

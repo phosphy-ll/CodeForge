@@ -13,9 +13,11 @@ from app.schemas.auth import (
     RegisterRequest,
     ResetPasswordRequest,
     TokenResponse,
+    ResendVerificationCodeRequest,
 )
-from app.schemas.user import UserResponse, UserSettingsUpdate
+from app.schemas.user import UserResponse, UserSettingsUpdate, UserProfileUpdate
 from app.services.auth_service import AuthService
+from app.schemas.auth import VerifyEmailCodeRequest
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -122,14 +124,19 @@ async def update_my_settings(
 
     return UserResponse.model_validate(user)
 
-@router.get("/verify-email")
-async def verify_email(
-    token: str,
+@router.post("/verify-email-code", response_model=TokenResponse)
+async def verify_email_code(
+    data: VerifyEmailCodeRequest,
     db: DbSession,
     request: Request,
-) -> dict[str, str]:
+) -> TokenResponse:
     service = AuthService(db)
-    return await service.verify_email(token, ip_address=request.client.host if request.client else None)
+
+    return await service.verify_email_code(
+        data,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
 
 
 @router.post("/forgot-password")
@@ -150,3 +157,35 @@ async def reset_password(
 ) -> dict[str, str]:
     service = AuthService(db)
     return await service.reset_password(data, ip_address=request.client.host if request.client else None)
+
+@router.patch("/me/profile", response_model=UserResponse)
+async def update_my_profile(
+    data: UserProfileUpdate,
+    db: DbSession,
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> UserResponse:
+    payload = data.model_dump(exclude_unset=True)
+
+    if "username" in payload:
+        existing = await AuthService(db).user_repo.get_by_username(payload["username"])
+
+        if existing and existing.id != current_user.id:
+            raise ValueError("Username already taken")
+
+    repo = AuthService(db).user_repo
+    user = await repo.update_profile(current_user, payload)
+
+    return UserResponse.model_validate(user)
+
+@router.post("/resend-verification-code")
+async def resend_verification_code(
+    data: ResendVerificationCodeRequest,
+    db: DbSession,
+    request: Request,
+) -> dict[str, str]:
+    service = AuthService(db)
+
+    return await service.resend_verification_code(
+        data,
+        ip_address=request.client.host if request.client else None,
+    )

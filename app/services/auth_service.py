@@ -1,12 +1,13 @@
+from datetime import datetime, timedelta, timezone
+import random
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.exceptions import UnauthorizedError, ValidationAppError
 from app.core.security import (
     create_access_token,
-    create_email_token,
     create_reset_token,
-    decode_email_token,
     decode_reset_token,
     hash_password,
     verify_password,
@@ -19,6 +20,8 @@ from app.schemas.auth import (
     RegisterRequest,
     ResetPasswordRequest,
     TokenResponse,
+    VerifyEmailCodeRequest,
+    ResendVerificationCodeRequest,
 )
 from app.services.audit_service import AuditService
 from app.services.email_service import EmailService
@@ -48,48 +51,31 @@ class AuthService:
         if existing_username:
             raise ValidationAppError("Username already taken")
 
+        verification_code = str(random.randint(100000, 999999))
+
         user = await self.user_repo.create(
             email=data.email,
             username=data.username,
             hashed_password=hash_password(data.password),
         )
 
-        token = create_email_token(user.email)
+        user.email_verification_code = verification_code
+        user.email_verification_expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
 
-        verify_link = (
-            f"{settings.FRONTEND_URL}/verify-email?token={token}"
-        )
+        await self.session.commit()
+        await self.session.refresh(user)
 
         self.email_service.send_email(
             user.email,
-            "Verify your email",
+            "CodeForge Email Verification",
             f"""
             <div style="background:#0a0a12;padding:40px;font-family:Arial,sans-serif;color:white">
-                <h2 style="color:#a855f7;">CodeForge Email Verification</h2>
-
-                <p>
-                    Verify your email to activate your CodeForge account.
-                </p>
-
-                <a
-                    href="{verify_link}"
-                    style="
-                        display:inline-block;
-                        margin-top:20px;
-                        padding:14px 24px;
-                        border-radius:14px;
-                        background:#7c3aed;
-                        color:white;
-                        text-decoration:none;
-                        font-weight:bold;
-                    "
-                >
-                    Verify Email
-                </a>
-
-                <p style="margin-top:30px;color:#999;font-size:14px;">
-                    If you didn’t create this account, simply ignore this email.
-                </p>
+                <h2 style="color:#a855f7;">Verify your email</h2>
+                <p>Your verification code:</p>
+                <div style="margin-top:20px;font-size:42px;font-weight:bold;letter-spacing:8px;color:#a855f7;">
+                    {verification_code}
+                </div>
+                <p style="margin-top:30px;color:#999;">Code expires in 15 minutes.</p>
             </div>
             """,
         )
@@ -164,16 +150,9 @@ class AuthService:
             details=f"session_version={refresh_token_version}",
         )
 
-        return TokenResponse(
-            access_token=access_token,
-            refresh_token=refresh_token,
-        )
+        return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
-    async def refresh(
-        self,
-        refresh_token: str,
-        ip_address: str | None = None,
-    ) -> TokenResponse:
+    async def refresh(self, refresh_token: str, ip_address: str | None = None) -> TokenResponse:
         user_id, new_refresh_token = await self.session_service.rotate_refresh_token(refresh_token)
 
         user = await self.user_repo.get_by_id(user_id)
@@ -194,10 +173,7 @@ class AuthService:
             ip_address=ip_address,
         )
 
-        return TokenResponse(
-            access_token=access_token,
-            refresh_token=new_refresh_token,
-        )
+        return TokenResponse(access_token=access_token, refresh_token=new_refresh_token)
 
     async def logout(self, refresh_token: str, user_id: int, ip_address: str | None = None) -> dict[str, str]:
         await self.session_service.logout_by_refresh_token(refresh_token)
@@ -227,29 +203,61 @@ class AuthService:
 
         return {"message": "Logged out from all sessions"}
 
-    async def verify_email(self, token: str, ip_address: str | None = None) -> dict[str, str]:
-        try:
-            payload = decode_email_token(token)
-        except ValueError as exc:
-            raise ValidationAppError("Invalid token") from exc
+    async def verify_email_code(
+        self,
+        data: VerifyEmailCodeRequest,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+    ) -> TokenResponse:
+        user = await self.user_repo.get_by_email(data.email)
 
-        if payload.get("type") != "email_verify":
-            raise ValidationAppError("Invalid token")
-
-        email = payload.get("sub")
-        if not email:
-            raise ValidationAppError("Invalid token")
-
-        user = await self.user_repo.get_by_email(email)
         if not user:
-            raise ValidationAppError("Invalid token")
+            raise ValidationAppError("Invalid code")
 
         if user.is_email_verified:
-            return {"message": "Already verified"}
+            refresh_token, session_token, _ = await self.session_service.create_session(
+                user_id=user.id,
+                user_agent=user_agent,
+                ip_address=ip_address,
+            )
+            access_token = create_access_token(
+                subject=user.id,
+                extra_data={"role": user.role, "sid": session_token},
+            )
+            return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+
+        if not user.email_verification_code:
+            raise ValidationAppError("Verification code missing")
+
+        if user.email_verification_code != data.code:
+            raise ValidationAppError("Invalid code")
+
+        now = datetime.now(timezone.utc)
+        expires_at = user.email_verification_expires_at
+
+        if expires_at is not None and expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+        if not expires_at or expires_at < now:
+            raise ValidationAppError("Code expired")
 
         user.is_email_verified = True
+        user.email_verification_code = None
+        user.email_verification_expires_at = None
+
         await self.session.commit()
         await self.session.refresh(user)
+
+        refresh_token, session_token, refresh_token_version = await self.session_service.create_session(
+            user_id=user.id,
+            user_agent=user_agent,
+            ip_address=ip_address,
+        )
+
+        access_token = create_access_token(
+            subject=user.id,
+            extra_data={"role": user.role, "sid": session_token},
+        )
 
         await self.audit_service.log(
             action="auth.verify_email",
@@ -258,15 +266,15 @@ class AuthService:
             target_type="user",
             target_id=user.id,
             ip_address=ip_address,
+            details=f"session_version={refresh_token_version}",
         )
 
-        return {"message": "Email verified"}
+        return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
     async def forgot_password(self, data: ForgotPasswordRequest, ip_address: str | None = None) -> dict[str, str]:
         self.security_service.check_email_rate_limit(data.email.lower(), "forgot_password")
 
         user = await self.user_repo.get_by_email(data.email)
-
         if not user:
             return {"message": "If user exists, email sent"}
 
@@ -330,3 +338,58 @@ class AuthService:
         )
 
         return {"message": "Password updated"}
+
+    async def resend_verification_code(
+        self,
+        data: ResendVerificationCodeRequest,
+        ip_address: str | None = None,
+    ) -> dict[str, str]:
+        self.security_service.check_email_rate_limit(
+            data.email.lower(),
+            "resend_verification_code",
+        )
+
+        user = await self.user_repo.get_by_email(data.email)
+
+        if not user:
+            return {"message": "If account exists, verification code sent"}
+
+        if user.is_email_verified:
+            return {"message": "Email is already verified"}
+
+        verification_code = str(random.randint(100000, 999999))
+
+        user.email_verification_code = verification_code
+        user.email_verification_expires_at = (
+            datetime.now(timezone.utc) + timedelta(minutes=15)
+        )
+
+        await self.session.commit()
+        await self.session.refresh(user)
+
+        self.email_service.send_email(
+            user.email,
+            "CodeForge Email Verification",
+            f"""
+            <div style="background:#0a0a12;padding:40px;font-family:Arial,sans-serif;color:white">
+                <h2 style="color:#a855f7;">Verify your email</h2>
+                <p>Your new verification code:</p>
+                <div style="margin-top:20px;font-size:42px;font-weight:bold;letter-spacing:8px;color:#a855f7;">
+                    {verification_code}
+                </div>
+                <p style="margin-top:30px;color:#999;">Code expires in 15 minutes.</p>
+            </div>
+            """,
+        )
+
+        await self.audit_service.log(
+            action="auth.resend_verification_code",
+            status="success",
+            user_id=user.id,
+            target_type="user",
+            target_id=user.id,
+            ip_address=ip_address,
+            details=f"email={user.email}",
+        )
+
+        return {"message": "Verification code sent"}

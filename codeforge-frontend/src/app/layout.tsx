@@ -28,16 +28,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-
-<footer className="border-t border-white/5 py-8 text-center text-sm text-white/35">
-  <div className="flex items-center justify-center gap-6">
-    <a href="/legal/terms">Terms</a>
-    <a href="/legal/privacy">Privacy</a>
-    <a href="/legal/refund">Refunds</a>
-  </div>
-
-  <p className="mt-4">
-    codeforgesupport@codeforgeapp.com
-  </p>
-</footer>
