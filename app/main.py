@@ -16,12 +16,10 @@ app = FastAPI(
     openapi_url=None if not settings.DEBUG else "/openapi.json",
 )
 
-app.add_middleware(RequestContextMiddleware)
-setup_cors(app)
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://codeforge-frontend-production-fe08.up.railway.app",
         "https://codeforgeapp.com",
         "https://www.codeforgeapp.com",
         "https://code-forge.vercel.app",
@@ -31,6 +29,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/")
+async def root():
+    return {"status": "ok", "service": "CodeForge API"}
 
 @app.exception_handler(AppError)
 async def app_error_handler(request: Request, exc: AppError):

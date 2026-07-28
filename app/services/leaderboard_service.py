@@ -121,9 +121,48 @@ class LeaderboardService:
                 period_start,
             )
 
+        all_entries = list(entries)
+
+        if current_user_entry and current_user_entry.id not in [
+            entry.id for entry in all_entries
+        ]:
+            all_entries.append(current_user_entry)
+
+        user_ids = list({entry.user_id for entry in all_entries})
+
+        users_by_id = {}
+
+        if user_ids:
+            users_result = await self.session.execute(
+                select(User).where(User.id.in_(user_ids))
+            )
+
+            users_by_id = {
+                user.id: user for user in users_result.scalars().all()
+            }
+
+        def serialize_entry(entry: LeaderboardEntry):
+            user = users_by_id.get(entry.user_id)
+
+            return {
+                "id": entry.id,
+                "user_id": entry.user_id,
+                "username": user.username if user else None,
+                "period_type": entry.period_type,
+                "period_start": entry.period_start,
+                "period_end": entry.period_end,
+                "score_points": entry.score_points,
+                "verified_tasks": entry.verified_tasks,
+                "rank": entry.rank,
+                "created_at": entry.created_at,
+                "updated_at": entry.updated_at,
+            }
+
         return {
             "period_type": period_type,
             "period_start": period_start,
-            "top_entries": entries[:20],
-            "current_user_entry": current_user_entry,
+            "top_entries": [serialize_entry(entry) for entry in entries[:20]],
+            "current_user_entry": serialize_entry(current_user_entry)
+            if current_user_entry
+            else None,
         }

@@ -1,12 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { CheckCircle2, Sparkles } from "lucide-react";
+
+type BootScreenMode = "boot" | "today-plan";
 
 type BootScreenProps = {
-  onComplete: () => void;
+  onComplete?: () => void;
+  mode?: BootScreenMode;
+  autoComplete?: boolean;
 };
 
-const STEPS = [
+const BOOT_STEPS = [
   {
     label: "Authenticating user",
     detail: "Access token accepted",
@@ -14,91 +19,141 @@ const STEPS = [
   },
   {
     label: "Loading active goal",
-    detail: "Execution target detected",
+    detail: "Learning path detected",
     duration: 520,
   },
   {
-    label: "Generating daily execution plan",
-    detail: "Tasks locked to today",
-    duration: 680,
-  },
-  {
-    label: "Syncing AI Coach",
-    detail: "Risk profile updated",
-    duration: 560,
+    label: "Preparing dashboard",
+    detail: "Progress data synced",
+    duration: 620,
   },
   {
     label: "System ready",
-    detail: "No idle state allowed",
-    duration: 700,
+    detail: "Workspace initialized",
+    duration: 620,
   },
 ];
 
-export default function BootScreen({ onComplete }: BootScreenProps) {
+const TODAY_STEPS = [
+  {
+    label: "Reading your roadmap",
+    detail: "Milestones and current progress detected",
+    duration: 520,
+  },
+  {
+    label: "Choosing today’s focus",
+    detail: "CodeForge is selecting the most useful tasks",
+    duration: 680,
+  },
+  {
+    label: "Balancing difficulty",
+    detail: "Plan adjusted for your current level",
+    duration: 620,
+  },
+  {
+    label: "Preparing daily plan",
+    detail: "Your focused tasks are almost ready",
+    duration: 720,
+  },
+];
+
+export default function BootScreen({
+  onComplete,
+  mode = "boot",
+  autoComplete = true,
+}: BootScreenProps) {
+  const steps = mode === "today-plan" ? TODAY_STEPS : BOOT_STEPS;
+
   const [activeStep, setActiveStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [cursorVisible, setCursorVisible] = useState(true);
 
   const progress = useMemo(() => {
-    return Math.min(((completedSteps.length + 1) / STEPS.length) * 100, 100);
-  }, [completedSteps.length]);
+    return Math.min(((completedSteps.length + 1) / steps.length) * 100, 100);
+  }, [completedSteps.length, steps.length]);
+
+  const copy = mode === "today-plan"
+    ? {
+        eyebrow: "Daily Plan",
+        title: "Preparing today’s tasks",
+        description:
+          "CodeForge is turning your roadmap into a focused daily plan.",
+        footer: "Your plan is loading. Stay on this page.",
+      }
+    : {
+        eyebrow: "CodeForge Boot",
+        title: "Initializing workspace",
+        description: "Loading your account, goal, and progress data.",
+        footer: "Preparing your workspace.",
+      };
 
   useEffect(() => {
-    const cursorTimer = setInterval(() => {
+    const cursorTimer = window.setInterval(() => {
       setCursorVisible((value) => !value);
     }, 420);
 
-    return () => clearInterval(cursorTimer);
+    return () => window.clearInterval(cursorTimer);
   }, []);
 
   useEffect(() => {
-    if (activeStep >= STEPS.length) {
-      const doneTimer = setTimeout(() => {
-        onComplete();
-      }, 500);
+    if (activeStep >= steps.length) {
+      if (!autoComplete) return;
 
-      return () => clearTimeout(doneTimer);
+      const doneTimer = window.setTimeout(() => {
+        onComplete?.();
+      }, 450);
+
+      return () => window.clearTimeout(doneTimer);
     }
 
-    const timer = setTimeout(() => {
-      setCompletedSteps((prev) => [...prev, activeStep]);
+    const timer = window.setTimeout(() => {
+      setCompletedSteps((prev) =>
+        prev.includes(activeStep) ? prev : [...prev, activeStep]
+      );
       setActiveStep((prev) => prev + 1);
-    }, STEPS[activeStep].duration);
+    }, steps[activeStep].duration);
 
-    return () => clearTimeout(timer);
-  }, [activeStep, onComplete]);
+    return () => window.clearTimeout(timer);
+  }, [activeStep, autoComplete, onComplete, steps]);
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-[var(--cf-bg)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(124,92,255,0.18),transparent_32%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(124,92,255,0.20),transparent_34%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(60,242,255,0.08),transparent_30%)]" />
 
       <div className="relative w-full max-w-2xl px-6">
         <div className="mb-6 flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--cf-primary)]/30 bg-[var(--cf-card)] shadow-[0_0_34px_var(--cf-glow)]">
-            <img
-              src="/logo-dark.svg"
-              alt="CodeForge"
-              className="h-10 w-10 object-contain"
-            />
+          <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--cf-primary)]/30 bg-[var(--cf-card)] shadow-[0_0_34px_var(--cf-glow)]">
+            {mode === "today-plan" ? (
+              <Sparkles className="h-7 w-7 animate-pulse text-[var(--cf-accent)]" />
+            ) : (
+              <img
+                src="/logo-dark.svg"
+                alt="CodeForge"
+                className="h-10 w-10 object-contain"
+              />
+            )}
           </div>
 
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.22em] text-[var(--cf-accent)]">
-              CodeForge Boot
+              {copy.eyebrow}
             </p>
             <h1 className="text-2xl font-black text-[var(--cf-text)]">
-              Initializing execution system
+              {copy.title}
               <span className={cursorVisible ? "opacity-100" : "opacity-0"}>
                 _
               </span>
             </h1>
+            <p className="mt-1 text-sm text-[var(--cf-text-secondary)]">
+              {copy.description}
+            </p>
           </div>
         </div>
 
         <div className="rounded-[28px] border border-[var(--cf-border)] bg-[var(--cf-card)] p-6 shadow-[0_24px_90px_rgba(0,0,0,0.38)]">
           <div className="space-y-3 font-mono text-sm">
-            {STEPS.map((step, index) => {
+            {steps.map((step, index) => {
               const done = completedSteps.includes(index);
               const active = index === activeStep;
 
@@ -122,7 +177,13 @@ export default function BootScreen({ onComplete }: BootScreenProps) {
                   </div>
 
                   <span className="text-xs">
-                    {done ? "verified" : active ? "running" : "queued"}
+                    {done ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : active ? (
+                      "running"
+                    ) : (
+                      "queued"
+                    )}
                   </span>
                 </div>
               );
@@ -131,7 +192,7 @@ export default function BootScreen({ onComplete }: BootScreenProps) {
 
           <div className="mt-6">
             <div className="mb-2 flex items-center justify-between text-xs font-bold uppercase tracking-[0.18em] text-[var(--cf-text-muted)]">
-              <span>System progress</span>
+              <span>Progress</span>
               <span>{Math.round(progress)}%</span>
             </div>
 
@@ -144,7 +205,7 @@ export default function BootScreen({ onComplete }: BootScreenProps) {
           </div>
 
           <p className="mt-5 text-center text-sm font-semibold text-[var(--cf-text-secondary)]">
-            Execution plan loading. No progress is counted without proof.
+            {copy.footer}
           </p>
         </div>
       </div>

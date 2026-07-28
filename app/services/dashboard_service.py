@@ -41,6 +41,8 @@ class DashboardService:
 
         streak_service = StreakService(self.session)
 
+        await streak_service.sync_streak_status(user_id)
+
         total_today_points = await streak_service.get_total_streak_points_today(user_id)
         await streak_service.apply_points(user_id, total_today_points)
 

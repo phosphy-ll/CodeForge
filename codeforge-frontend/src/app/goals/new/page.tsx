@@ -96,7 +96,7 @@ const GOAL_TYPES: OptionCard<GoalTypeValue>[] = [
   {
     value: "learn_backend",
     label: "Learn backend",
-    description: "Build backend fundamentals through guided execution.",
+    description: "Build backend fundamentals through structured learning.",
     icon: <Layers className="h-5 w-5" />,
   },
   {
@@ -108,13 +108,13 @@ const GOAL_TYPES: OptionCard<GoalTypeValue>[] = [
   {
     value: "prepare_interview",
     label: "Prepare interview",
-    description: "Train for coding rounds, questions, and proof of skill.",
+    description: "Prepare for technical interviews and coding challenges.",
     icon: <Target className="h-5 w-5" />,
   },
   {
     value: "switch_language",
     label: "Switch language",
-    description: "Move into a new language without random learning chaos.",
+    description: "Transition into a new language with a structured roadmap.",
     icon: <Zap className="h-5 w-5" />,
   },
 ];
@@ -182,20 +182,20 @@ const LEARNING_STYLES: OptionCard<LearningStyleValue>[] = [
 const ACCOUNTABILITY_MODES: OptionCard<AccountabilityModeValue>[] = [
   {
     value: "soft",
-    label: "Soft",
-    description: "Flexible pacing. Less pressure, more recovery room.",
+    label: "Flexible",
+    description: "Lighter pacing with more flexibility and recovery room.",
     icon: <Shield className="h-5 w-5" />,
   },
   {
     value: "normal",
-    label: "Normal",
-    description: "Balanced execution pressure. Good default.",
+    label: "Balanced",
+    description: "Steady consistency and structured daily progress.",
     icon: <Target className="h-5 w-5" />,
   },
   {
     value: "hard",
-    label: "Hard",
-    description: "Stricter flow. Less comfort, more accountability.",
+    label: "Focused",
+    description: "Higher intensity and stronger daily consistency expectations.",
     icon: <Flame className="h-5 w-5" />,
   },
 ];
@@ -245,9 +245,9 @@ export default function NewGoalPage() {
   }, [form.declared_level]);
 
   const pressureLabel = useMemo(() => {
-    if (form.accountability_mode === "hard") return "High pressure";
-    if (form.accountability_mode === "soft") return "Flexible pressure";
-    return "Balanced pressure";
+    if (form.accountability_mode === "hard") return "Focused mode";
+    if (form.accountability_mode === "soft") return "Flexible mode";
+    return "Balanced mode";
   }, [form.accountability_mode]);
 
   const tooAggressive = form.target_months < recommendedMonths;
@@ -312,6 +312,15 @@ export default function NewGoalPage() {
         saveSelectedGoalId(response.data.id);
       }
 
+      localStorage.setItem(
+        "codeforge_guided_tour_completed",
+        "true"
+      );
+
+      window.dispatchEvent(
+        new Event("codeforge:goal-created")
+      );
+
       router.push("/roadmap");
     } catch (err: any) {
       setError(err?.response?.data?.detail || "Failed to create goal.");
@@ -337,12 +346,12 @@ export default function NewGoalPage() {
           </p>
 
           <h1 className="mt-2 text-4xl font-black tracking-tight text-[var(--cf-text)]">
-            Forge a new execution path
+            Create your coding roadmap
           </h1>
 
           <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--cf-text-secondary)]">
-            This is not a comfort plan. CodeForge will use this goal to generate
-            roadmap structure, daily pressure, and proof-based tasks.
+            CodeForge will generate a personalized roadmap, daily coding tasks,
+            and progress tracking based on your goal.
           </p>
         </div>
 
@@ -419,7 +428,7 @@ export default function NewGoalPage() {
               </LiquidGlassButton>
             ) : (
               <LiquidGlassButton onClick={submitGoal} disabled={submitting}>
-                {submitting ? "Forging..." : "Forge my roadmap"}
+                {submitting ? "Forging..." : "Generate my roadmap"}
                 <Sparkles className="ml-2 h-4 w-4" />
               </LiquidGlassButton>
             )}
@@ -443,8 +452,8 @@ function StepIdentity({
     <div className="space-y-8">
       <StepTitle
         icon={<Target className="h-6 w-6" />}
-        title="Define the target"
-        text="Name the outcome. Then choose what kind of path CodeForge should build."
+        title="Define your goal"
+        text="Choose what you want to achieve and what technology path you want to follow."
       />
 
       <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
@@ -507,8 +516,8 @@ function StepSkill({
     <div className="space-y-8">
       <StepTitle
         icon={<Brain className="h-6 w-6" />}
-        title="Calibrate the system"
-        text="Your roadmap depends on level, learning style, and how hard the system should push."
+        title="Customize your learning path"
+        text="Choose your level, learning style, and preferred pacing."
       />
 
       <div data-tour="goal-level">
@@ -558,8 +567,8 @@ function StepTimeline({
     <div data-tour="goal-timeline" className="space-y-8">
       <StepTitle
         icon={<Timer className="h-6 w-6" />}
-        title="Set the timeline"
-        text="Choose how much time you give yourself. Short timelines increase execution pressure."
+        title="Choose your timeline"
+        text="Pick a realistic timeframe for your roadmap and learning goals."
       />
 
       <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
@@ -584,13 +593,11 @@ function StepTimeline({
 
           {tooAggressive ? (
             <div className="mt-5 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm leading-7 text-amber-200">
-              This is aggressive. CodeForge can do it, but the daily pressure
-              will feel heavier.
+              This timeline is ambitious. Expect a faster pace and more weekly workload.
             </div>
           ) : (
             <div className="mt-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm leading-7 text-emerald-200">
-              This timeline is realistic enough to build consistency without
-              turning the plan into chaos.
+              This timeline gives you enough room to build steady long-term consistency.
             </div>
           )}
         </section>
@@ -663,8 +670,8 @@ function StepConfirm({
     <div data-tour="goal-confirm" className="space-y-8">
       <StepTitle
         icon={<CheckCircle2 className="h-6 w-6" />}
-        title="Confirm execution path"
-        text="Review the setup. After this, CodeForge starts treating this as your active execution target."
+        title="Review your roadmap setup"
+        text="Check your configuration before generating your personalized roadmap."
       />
 
       <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">

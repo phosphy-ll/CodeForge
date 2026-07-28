@@ -3,6 +3,11 @@ import random
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.services.email_templates import (
+    verification_email_template,
+    reset_password_email_template,
+)
+
 from app.core.config import get_settings
 from app.core.exceptions import UnauthorizedError, ValidationAppError
 from app.core.security import (
@@ -40,6 +45,22 @@ class AuthService:
         self.security_service = SecurityService(session)
         self.session_service = SessionService(session)
 
+    async def apply_expired_subscription_downgrade(self, user: User) -> User:
+        expires_at = user.subscription_expires_at
+
+        if expires_at is not None and expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+        if expires_at and expires_at < datetime.now(timezone.utc):
+            user.subscription_tier = "free"
+            user.beta_tester = False
+            user.subscription_expires_at = None
+
+            await self.session.commit()
+            await self.session.refresh(user)
+
+        return user
+        
     async def register(self, data: RegisterRequest, ip_address: str | None = None) -> User:
         self.security_service.check_auth_rate_limit(data.email.lower(), "register")
 
@@ -68,16 +89,7 @@ class AuthService:
         self.email_service.send_email(
             user.email,
             "CodeForge Email Verification",
-            f"""
-            <div style="background:#0a0a12;padding:40px;font-family:Arial,sans-serif;color:white">
-                <h2 style="color:#a855f7;">Verify your email</h2>
-                <p>Your verification code:</p>
-                <div style="margin-top:20px;font-size:42px;font-weight:bold;letter-spacing:8px;color:#a855f7;">
-                    {verification_code}
-                </div>
-                <p style="margin-top:30px;color:#999;">Code expires in 15 minutes.</p>
-            </div>
-            """,
+            verification_email_template(verification_code),
         )
 
         await self.audit_service.log(
@@ -128,6 +140,7 @@ class AuthService:
 
         if not user.is_email_verified:
             raise UnauthorizedError("Email is not verified")
+        user = await self.apply_expired_subscription_downgrade(user)
 
         refresh_token, session_token, refresh_token_version = await self.session_service.create_session(
             user_id=user.id,
@@ -158,6 +171,8 @@ class AuthService:
         user = await self.user_repo.get_by_id(user_id)
         if not user or not user.is_active:
             raise UnauthorizedError("Invalid refresh token")
+
+        user = await self.apply_expired_subscription_downgrade(user)
 
         access_token = create_access_token(
             subject=user.id,
@@ -284,7 +299,7 @@ class AuthService:
         self.email_service.send_email(
             user.email,
             "Reset your password",
-            f"<h3>Password reset</h3><p><a href='{reset_link}'>Reset password</a></p>",
+            reset_password_email_template(reset_link),
         )
 
         await self.audit_service.log(
@@ -370,16 +385,7 @@ class AuthService:
         self.email_service.send_email(
             user.email,
             "CodeForge Email Verification",
-            f"""
-            <div style="background:#0a0a12;padding:40px;font-family:Arial,sans-serif;color:white">
-                <h2 style="color:#a855f7;">Verify your email</h2>
-                <p>Your new verification code:</p>
-                <div style="margin-top:20px;font-size:42px;font-weight:bold;letter-spacing:8px;color:#a855f7;">
-                    {verification_code}
-                </div>
-                <p style="margin-top:30px;color:#999;">Code expires in 15 minutes.</p>
-            </div>
-            """,
+            verification_email_template(verification_code)
         )
 
         await self.audit_service.log(

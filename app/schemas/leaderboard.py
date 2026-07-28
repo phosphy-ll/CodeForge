@@ -8,6 +8,8 @@ class LeaderboardEntryResponse(BaseModel):
 
     id: int
     user_id: int
+    username: str | None = None
+
     period_type: str
     period_start: date
     period_end: date

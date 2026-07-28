@@ -23,6 +23,10 @@ class UserResponse(BaseModel):
     rating: int
     weekly_freezes_total: int
     weekly_freezes_used: int
+    subscription_expires_at: datetime | None
+    polar_subscription_cancel_at_period_end: bool = False
+    polar_subscription_current_period_end: datetime | None = None
+    beta_tester: bool
 
     theme: str
     pressure_level: str

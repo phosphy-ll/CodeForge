@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Brain,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Crown,
   Flame,
   Gem,
@@ -31,6 +33,10 @@ type Plan = {
 
 type MeResponse = {
   subscription_tier: string;
+  beta_tester?: boolean;
+  subscription_expires_at?: string | null;
+  polar_subscription_cancel_at_period_end?: boolean;
+  polar_subscription_current_period_end?: string | null;
 };
 
 type CheckoutResponse = {
@@ -86,7 +92,20 @@ const PLAN_OVERRIDES: Record<string, Record<string, any>> = {
     ai_coach_enabled: true,
     precheck_enabled: true,
     adaptive_tasks_enabled: true,
-    allowed_languages: ["Python", "Java", "JavaScript", "C++", "Kotlin", "Go", "TypeScript", "C#"],
+    allowed_languages: [
+      "Python",
+      "Java",
+      "JavaScript",
+      "C++",
+      "Kotlin",
+      "Go",
+      "TypeScript",
+      "C#",
+      "PHP",
+      "Ruby",
+      "Swift",
+      "Rust",
+    ],
     custom_language_allowed: false,
     quiz_generations_per_day: 9,
   },
@@ -104,10 +123,15 @@ const PLAN_OVERRIDES: Record<string, Record<string, any>> = {
 export default function SubscriptionPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [currentTier, setCurrentTier] = useState("free");
+  const [betaTester, setBetaTester] = useState(false);
+  const [subscriptionExpiresAt, setSubscriptionExpiresAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
+  const [currentPeriodEnd, setCurrentPeriodEnd] = useState<string | null>(null);
 
   async function loadData() {
     try {
@@ -120,10 +144,23 @@ export default function SubscriptionPage() {
       try {
         const meResponse = await api.get<MeResponse>("/auth/me");
         setCurrentTier(meResponse.data.subscription_tier || "free");
+        setBetaTester(Boolean(meResponse.data.beta_tester));
+        setSubscriptionExpiresAt(meResponse.data.subscription_expires_at || null);
+        setCancelAtPeriodEnd(
+          Boolean(meResponse.data.polar_subscription_cancel_at_period_end)
+        );
+
+        setCurrentPeriodEnd(
+          meResponse.data.polar_subscription_current_period_end || null
+        );
         setIsAuthenticated(true);
       } catch {
         setCurrentTier("free");
         setIsAuthenticated(false);
+        setBetaTester(false);
+        setSubscriptionExpiresAt(null);
+        setCancelAtPeriodEnd(false);
+        setCurrentPeriodEnd(null);
       }
     } catch (err: any) {
       setError(err?.response?.data?.detail || "Failed to load subscription plans.");
@@ -154,6 +191,30 @@ export default function SubscriptionPage() {
       );
     } finally {
       setCheckoutLoading(null);
+    }
+  }
+  async function cancelSubscription() {
+    const ok = window.confirm(
+      "Cancel your current subscription? Your paid access may be downgraded after Polar confirms cancellation."
+    );
+
+    if (!ok) return;
+
+    try {
+      setCancelLoading(true);
+      setError("");
+
+      await api.post("/billing/cancel");
+
+      await loadData();
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.detail ||
+          err?.message ||
+          "Failed to cancel subscription."
+      );
+    } finally {
+      setCancelLoading(false);
     }
   }
 
@@ -196,6 +257,16 @@ export default function SubscriptionPage() {
       </header>
 
       {error ? <ErrorBox text={error} /> : null}
+
+      <SubscriptionStatus
+        currentTier={currentTier}
+        betaTester={betaTester}
+        subscriptionExpiresAt={subscriptionExpiresAt}
+        cancelAtPeriodEnd={cancelAtPeriodEnd}
+        currentPeriodEnd={currentPeriodEnd}
+        onCancel={cancelSubscription}
+        cancelLoading={cancelLoading}
+      />
 
       <BetaCard
         loading={checkoutLoading === "beta"}
@@ -331,15 +402,22 @@ function PlanCard({
   loading: boolean;
   onCheckout: () => void;
 }) {
+  const [languagesOpen, setLanguagesOpen] = useState(false);
+
   const features = plan.features_json || {};
   const isCurrent = plan.tier === currentTier;
   const isPopular = plan.tier === "plus";
   const isUltra = plan.tier === "ultra";
   const basePrice = BASE_PRICES[plan.tier];
+
   const discount =
     basePrice && plan.price_usd < basePrice
       ? Math.round(((basePrice - plan.price_usd) / basePrice) * 100)
       : plan.discount_percent || 0;
+
+  const languages = features.allowed_languages || [];
+  const languagesLabel =
+    plan.tier === "ultra" ? "All languages" : `${languages.length} languages`;
 
   return (
     <article
@@ -411,18 +489,29 @@ function PlanCard({
               ? "Current"
               : plan.tier === "free"
               ? "Free"
-              : `Upgrade`}
+              : "Upgrade"}
             <Sparkles className="ml-2 h-4 w-4" />
           </LiquidGlassButton>
         </div>
 
         <div className="mt-4 space-y-2">
-          <CompactFeature icon={<Target />} text={`${features.max_active_goals} goal${features.max_active_goals > 1 ? "s" : ""}`} />
+          <CompactFeature
+            icon={<Target />}
+            text={`${features.max_active_goals} goal${features.max_active_goals > 1 ? "s" : ""}`}
+          />
           <CompactFeature icon={<Flame />} text={`${features.daily_tasks_min}-${features.daily_tasks_max} tasks/day`} />
           <CompactFeature icon={<Zap />} text={`${features.max_daily_points} pts/day`} />
           <CompactFeature icon={<Brain />} text={`${format(features.ai_level)} AI`} />
           <CompactFeature icon={<Sparkles />} text={`${features.ai_requests_per_day} AI req/day`} />
           <CompactFeature icon={<Shield />} text={`${features.quiz_generations_per_day} quizzes/day`} />
+
+          <LanguageFeature
+            label={languagesLabel}
+            languages={languages}
+            open={languagesOpen}
+            onToggle={() => setLanguagesOpen((prev) => !prev)}
+            isUltra={plan.tier === "ultra"}
+          />
 
           <BooleanFeature enabled={features.weakness_map} text="Weakness map" />
           <BooleanFeature enabled={features.ai_coach_enabled} text="AI Coach" />
@@ -431,6 +520,64 @@ function PlanCard({
         </div>
       </div>
     </article>
+  );
+}
+
+function LanguageFeature({
+  label,
+  languages,
+  open,
+  onToggle,
+  isUltra,
+}: {
+  label: string;
+  languages: string[];
+  open: boolean;
+  onToggle: () => void;
+  isUltra: boolean;
+}) {
+  return (
+    <div className="rounded-2xl border border-[var(--cf-border)] bg-black/15">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-xs text-[var(--cf-text-secondary)] md:text-sm"
+      >
+        <span className="flex items-center gap-2">
+          <span className="text-[var(--cf-accent)]">
+            <Sparkles className="h-4 w-4" />
+          </span>
+          {label}
+        </span>
+
+        {open ? (
+          <ChevronUp className="h-4 w-4 text-[var(--cf-text-muted)]" />
+        ) : (
+          <ChevronDown className="h-4 w-4 text-[var(--cf-text-muted)]" />
+        )}
+      </button>
+
+      {open ? (
+        <div className="border-t border-white/5 px-3 pb-3 pt-2">
+          <div className="flex flex-wrap gap-1.5">
+            {isUltra ? (
+              <span className="rounded-full border border-[var(--cf-primary)]/20 bg-[var(--cf-primary)]/10 px-2 py-1 text-[10px] font-bold text-[var(--cf-accent)]">
+                Any language
+              </span>
+            ) : (
+              languages.map((language) => (
+                <span
+                  key={language}
+                  className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] font-bold text-[var(--cf-text-secondary)]"
+                >
+                  {language}
+                </span>
+              ))
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -509,4 +656,100 @@ function format(value?: string | null) {
   return value
     .replaceAll("_", " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function SubscriptionStatus({
+  currentTier,
+  betaTester,
+  subscriptionExpiresAt,
+  cancelAtPeriodEnd,
+  currentPeriodEnd,
+  onCancel,
+  cancelLoading,
+}: {
+  currentTier: string;
+  betaTester: boolean;
+  subscriptionExpiresAt: string | null;
+  cancelAtPeriodEnd: boolean;
+  currentPeriodEnd: string | null;
+  onCancel: () => void;
+  cancelLoading: boolean;
+}) {
+  const params = new URLSearchParams(
+    typeof window !== "undefined" ? window.location.search : ""
+  );
+
+  const checkoutSuccess = params.get("checkout") === "success";
+  const expiresInDays = getDaysUntil(subscriptionExpiresAt);
+  const periodEndsInDays = getDaysUntil(currentPeriodEnd);
+
+  const periodBadgeText = cancelAtPeriodEnd
+    ? periodEndsInDays
+      ? `Ends in ${periodEndsInDays}d`
+      : "Cancellation scheduled"
+    : periodEndsInDays
+    ? `Renews in ${periodEndsInDays}d`
+    : null;
+
+  const isPaidSubscription = currentTier !== "free" && !subscriptionExpiresAt;
+
+  if (!checkoutSuccess && !betaTester && !expiresInDays && !isPaidSubscription) {
+    return null;
+  }
+
+  return (
+    <section className="relative overflow-hidden rounded-[28px] border border-emerald-400/20 bg-emerald-400/10 p-4 shadow-[0_0_42px_rgba(16,185,129,0.12)] md:p-5">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.18),transparent_34%)]" />
+
+      <div className="relative flex flex-wrap items-center justify-between gap-4">
+        <div>
+          {checkoutSuccess ? (
+            <p className="text-sm font-black text-emerald-200">
+              Upgrade successful.
+            </p>
+          ) : null}
+
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Badge text={`Current: ${format(currentTier)}`} variant="success" />
+
+            {betaTester ? <Badge text="Beta Tester" variant="gold" /> : null}
+
+            {expiresInDays ? (
+              <Badge text={`Ultra expires in ${expiresInDays}d`} />
+            ) : null}
+
+            {periodBadgeText ? (
+              <Badge
+                text={periodBadgeText}
+                variant={cancelAtPeriodEnd ? "gold" : "default"}
+              />
+            ) : null}
+          </div>
+        </div>
+
+        {isPaidSubscription && !cancelAtPeriodEnd ? (
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={cancelLoading}
+            className="rounded-2xl border border-white/10 bg-white/[0.035] px-5 py-3 text-xs font-black uppercase tracking-[0.16em] text-white/50 transition hover:border-rose-300/30 hover:bg-rose-500/10 hover:text-rose-200 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {cancelLoading ? "Scheduling..." : "Cancel renewal"}
+          </button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function getDaysUntil(dateString?: string | null) {
+  if (!dateString) return null;
+
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const diff = date.getTime() - Date.now();
+  if (diff <= 0) return null;
+
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }

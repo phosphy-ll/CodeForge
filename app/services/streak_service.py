@@ -1,4 +1,5 @@
-from datetime import date
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,18 +13,42 @@ from app.models.streak import StreakLog
 from app.models.task_submission import TaskSubmission
 from app.repositories.streak_repository import StreakRepository
 
+APP_TIMEZONE = ZoneInfo("Asia/Almaty")
+
 
 class StreakService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.repo = StreakRepository(session)
 
+    def get_today(self) -> date:
+        return datetime.now(APP_TIMEZONE).date()
+
+    async def sync_streak_status(self, user_id: int):
+        streak = await self.repo.get_or_create(user_id)
+        today = self.get_today()
+        yesterday = today - timedelta(days=1)
+
+        if not streak.last_streak_date:
+            return await self.repo.update(streak)
+
+        if streak.last_streak_date < yesterday:
+            streak.current_streak = 0
+            streak.today_verified_points = 0
+            return await self.repo.update(streak)
+
+        return await self.repo.update(streak)
+
     async def apply_points(self, user_id: int, earned_points: int = 0):
         streak = await self.repo.get_or_create(user_id)
-        today = date.today()
+        today = self.get_today()
+        yesterday = today - timedelta(days=1)
+
+        if streak.last_streak_date and streak.last_streak_date < yesterday:
+            streak.current_streak = 0
+            streak.today_verified_points = 0
 
         total_today = await self.get_total_streak_points_today(user_id)
-
         streak.today_verified_points = total_today
 
         if total_today < DAILY_STREAK_REQUIRED_POINTS:
@@ -56,7 +81,7 @@ class StreakService:
         return await self.repo.update(streak)
 
     async def get_total_streak_points_today(self, user_id: int) -> int:
-        today = date.today()
+        today = self.get_today()
 
         task_points_result = await self.session.execute(
             select(func.coalesce(func.sum(TaskSubmission.earned_points), 0)).where(

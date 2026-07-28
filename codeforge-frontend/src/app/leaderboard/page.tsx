@@ -10,6 +10,7 @@ import {
   Sparkles,
   Target,
   Trophy,
+  User,
   Zap,
 } from "lucide-react";
 
@@ -21,6 +22,7 @@ type PeriodType = "daily" | "weekly" | "monthly";
 type LeaderboardEntry = {
   id: number;
   user_id: number;
+  username?: string | null;
   period_type: PeriodType;
   period_start: string;
   period_end: string;
@@ -75,100 +77,129 @@ export default function LeaderboardPage() {
   const current = data?.current_user_entry ?? null;
   const topEntries = data?.top_entries ?? [];
 
-  const totalPoints = useMemo(() => {
-    return topEntries.reduce((sum, item) => sum + item.score_points, 0);
+  const totalVerified = useMemo(() => {
+    return topEntries.reduce((sum, item) => sum + item.verified_tasks, 0);
   }, [topEntries]);
 
   const topScore = topEntries[0]?.score_points ?? 0;
 
   return (
-    <main className="space-y-8">
-      <header>
-        <p className="text-sm font-black uppercase tracking-[0.24em] text-[var(--cf-accent)]">
-          Leaderboard
-        </p>
+    <main className="space-y-6 md:space-y-8">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-black uppercase tracking-[0.24em] text-[var(--cf-accent)]">
+            Leaderboard
+          </p>
 
-        <h1 className="mt-2 text-4xl font-black tracking-tight text-[var(--cf-text)]">
-          Execution arena
-        </h1>
+          <h1 className="mt-2 text-4xl font-black tracking-tight text-[var(--cf-text)] md:text-5xl">
+            Execution arena
+          </h1>
 
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--cf-text-secondary)]">
-          Compete through verified execution. Points come from real proof, not
-          checkbox progress.
-        </p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--cf-text-secondary)]">
+            Rank is earned through verified proof, not fake streaks or checkbox
+            progress.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => loadLeaderboard(period)}
+          disabled={loading}
+          className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-bold text-[var(--cf-text-secondary)] transition hover:border-[var(--cf-primary)]/35 hover:bg-[var(--cf-primary)]/10 hover:text-[var(--cf-accent)] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <RefreshCw
+            className={[
+              "mr-2 h-4 w-4",
+              loading ? "animate-spin" : "",
+            ].join(" ")}
+          />
+          Refresh
+        </button>
       </header>
 
       {error ? <ErrorBox text={error} /> : null}
 
-      <section className="relative overflow-hidden rounded-[38px] border border-[var(--cf-border)] bg-[var(--cf-card)] p-7 shadow-[0_24px_90px_rgba(0,0,0,0.26)]">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(124,92,255,0.22),transparent_35%)]" />
+      <section className="relative overflow-hidden rounded-[38px] border border-[var(--cf-border)] bg-[linear-gradient(135deg,rgba(17,17,26,0.98),rgba(32,22,58,0.82),rgba(8,8,13,0.98))] p-5 shadow-[0_24px_100px_rgba(0,0,0,0.30)] md:p-8">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(124,92,255,0.24),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(251,191,36,0.08),transparent_28%)]" />
+        <div className="pointer-events-none absolute right-8 top-8 h-3 w-3 animate-pulse rounded-full bg-emerald-300 shadow-[0_0_24px_rgba(110,231,183,0.75)]" />
 
-        <div className="relative flex flex-wrap items-start justify-between gap-6">
+        <div className="relative grid gap-8 xl:grid-cols-[1.15fr_0.85fr] xl:items-center">
           <div>
-            <div className="flex items-center gap-3 text-[var(--cf-accent)]">
-              <Trophy className="h-5 w-5" />
-              <p className="text-sm font-black uppercase tracking-[0.2em]">
-                Current season
-              </p>
+            <div className="flex flex-wrap gap-2">
+              <BadgeSoft text={`${format(period)} arena`} />
+              <BadgeSoft text={`Starts ${formatDate(data?.period_start)}`} />
+              {current ? (
+                <BadgeSoft text={`Your rank #${current.rank}`} tone="green" />
+              ) : null}
             </div>
 
-            <h2 className="mt-4 text-5xl font-black text-[var(--cf-text)]">
-              {format(period)} Arena
+            <h2 className="mt-5 max-w-4xl text-4xl font-black leading-[0.95] tracking-tight text-[var(--cf-text)] md:text-6xl">
+              Proof decides the rank.
             </h2>
 
-            <p className="mt-3 text-sm leading-7 text-[var(--cf-text-secondary)]">
-              Period starts {formatDate(data?.period_start)}. Your rank updates
-              as verified points enter the arena.
+            <p className="mt-5 max-w-2xl text-sm leading-7 text-[var(--cf-text-secondary)] md:text-base">
+              Every verified task pushes your position. No verified proof means
+              no arena progress.
             </p>
+
+            <div className="mt-7">
+              <LiquidGlassButton
+                onClick={() => loadLeaderboard(period)}
+                disabled={loading}
+              >
+                {loading ? "Refreshing..." : "Refresh arena"}
+                <RefreshCw className="ml-2 h-4 w-4" />
+              </LiquidGlassButton>
+            </div>
           </div>
 
-          <LiquidGlassButton onClick={() => loadLeaderboard(period)} disabled={loading}>
-            {loading ? "Refreshing..." : "Refresh"}
-            <RefreshCw className="ml-2 h-4 w-4" />
-          </LiquidGlassButton>
-        </div>
+          <div className="rounded-[32px] border border-white/10 bg-black/20 p-5 backdrop-blur-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--cf-accent)]">
+                  Current position
+                </p>
 
-        <div className="relative mt-7 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <MetricCard
-            icon={<Crown className="h-5 w-5" />}
-            label="Your rank"
-            value={current ? `#${current.rank}` : "—"}
-          />
+                <p className="mt-3 text-5xl font-black text-[var(--cf-text)]">
+                  {current ? `#${current.rank}` : "—"}
+                </p>
 
-          <MetricCard
-            icon={<Flame className="h-5 w-5" />}
-            label="Your points"
-            value={`${current?.score_points ?? 0}`}
-          />
+                <p className="mt-2 text-sm text-[var(--cf-text-secondary)]">
+                  {current
+                    ? `${current.score_points} points • ${current.verified_tasks} verified`
+                    : "You have not entered this arena yet."}
+                </p>
+              </div>
 
-          <MetricCard
-            icon={<Target className="h-5 w-5" />}
-            label="Verified"
-            value={`${current?.verified_tasks ?? 0}`}
-          />
+              <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full border border-[var(--cf-primary)]/30 bg-[var(--cf-primary)]/10 shadow-[0_0_40px_rgba(124,92,255,0.22)]">
+                <Trophy className="h-10 w-10 text-[var(--cf-accent)]" />
+              </div>
+            </div>
 
-          <MetricCard
-            icon={<Zap className="h-5 w-5" />}
-            label="Top score"
-            value={`${topScore}`}
-          />
+            <div className="mt-5 grid grid-cols-3 gap-2">
+              <MiniMetric label="Top score" value={`${topScore}`} />
+              <MiniMetric label="Verified" value={`${totalVerified}`} />
+              <MiniMetric label="Entries" value={`${topEntries.length}`} />
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="rounded-[30px] border border-[var(--cf-border)] bg-[var(--cf-card)] p-4">
-        <div className="flex flex-wrap gap-3">
+      <section className="rounded-[30px] border border-[var(--cf-border)] bg-[var(--cf-card)] p-3 shadow-[0_16px_60px_rgba(0,0,0,0.14)]">
+        <div className="grid gap-2 sm:grid-cols-3">
           {PERIODS.map((item) => {
             const active = period === item.value;
 
             return (
               <button
                 key={item.value}
+                type="button"
                 onClick={() => setPeriod(item.value)}
                 className={[
                   "rounded-2xl border px-5 py-3 text-sm font-black transition-all duration-300",
                   active
                     ? "border-[var(--cf-primary)]/40 bg-[var(--cf-primary)]/14 text-[var(--cf-accent)] shadow-[0_0_24px_var(--cf-glow)]"
-                    : "border-[var(--cf-border)] bg-[var(--cf-bg-secondary)] text-[var(--cf-text-secondary)] hover:border-[var(--cf-primary)]/30 hover:text-[var(--cf-text)]",
+                    : "border-transparent bg-[var(--cf-bg-secondary)] text-[var(--cf-text-secondary)] hover:border-[var(--cf-primary)]/30 hover:text-[var(--cf-text)]",
                 ].join(" ")}
               >
                 {item.label}
@@ -178,10 +209,13 @@ export default function LeaderboardPage() {
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="space-y-5">
+      <section className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="space-y-4">
           {loading ? (
-            <EmptyState title="Loading arena..." text="Pulling leaderboard entries." />
+            <EmptyState
+              title="Loading arena..."
+              text="Pulling verified execution entries."
+            />
           ) : null}
 
           {!loading && topEntries.length === 0 ? (
@@ -191,21 +225,25 @@ export default function LeaderboardPage() {
             />
           ) : null}
 
-          {topEntries.map((entry, index) => (
-            <LeaderboardCard
-              key={entry.id}
-              entry={entry}
-              index={index}
-              isCurrentUser={current?.id === entry.id}
-              topScore={topScore}
-            />
-          ))}
+          {!loading && topEntries.length > 0 ? (
+            <div className="grid gap-4">
+              {topEntries.map((entry, index) => (
+                <LeaderboardCard
+                  key={entry.id}
+                  entry={entry}
+                  index={index}
+                  isCurrentUser={current?.id === entry.id}
+                  topScore={topScore}
+                />
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <aside className="space-y-5">
           <CurrentUserCard entry={current} period={period} />
 
-          <section className="rounded-[34px] border border-[var(--cf-border)] bg-[var(--cf-card)] p-6">
+          <section className="rounded-[34px] border border-[var(--cf-border)] bg-[var(--cf-card)] p-6 shadow-[0_16px_60px_rgba(0,0,0,0.16)]">
             <div className="flex items-center gap-3 text-[var(--cf-accent)]">
               <Shield className="h-5 w-5" />
               <p className="text-sm font-black uppercase tracking-[0.18em]">
@@ -214,24 +252,28 @@ export default function LeaderboardPage() {
             </div>
 
             <div className="mt-5 space-y-3">
-              <Rule text="Only verified execution should matter." />
-              <Rule text="Quiz and exam points should count after backend scoring update." />
-              <Rule text="Rejected proof gives pressure, not rank progress." />
-              <Rule text="Monthly arena rewards consistency over random bursts." />
+              <Rule text="Only verified execution should move rank." />
+              <Rule text="Rejected proof gives pressure, not progress." />
+              <Rule text="Daily rewards speed. Weekly rewards discipline." />
+              <Rule text="Monthly arena rewards consistency over bursts." />
             </div>
           </section>
 
-          <section className="rounded-[34px] border border-[var(--cf-primary)]/25 bg-[var(--cf-primary)]/10 p-6 shadow-[0_0_28px_var(--cf-glow)]">
-            <Sparkles className="h-6 w-6 text-[var(--cf-accent)]" />
+          <section className="relative overflow-hidden rounded-[34px] border border-[var(--cf-primary)]/25 bg-[linear-gradient(135deg,rgba(124,92,255,0.16),rgba(17,17,26,0.96))] p-6 shadow-[0_0_32px_var(--cf-glow)]">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(124,92,255,0.24),transparent_36%)]" />
 
-            <h3 className="mt-4 text-2xl font-black text-[var(--cf-text)]">
-              Next upgrade
-            </h3>
+            <div className="relative">
+              <Sparkles className="h-6 w-6 text-[var(--cf-accent)]" />
 
-            <p className="mt-3 text-sm leading-7 text-[var(--cf-text-secondary)]">
-              Connect leaderboard scoring to the unified execution feed, so
-              exams, quizzes, practice, and task proofs all shape rank.
-            </p>
+              <h3 className="mt-4 text-2xl font-black text-[var(--cf-text)]">
+                Next upgrade
+              </h3>
+
+              <p className="mt-3 text-sm leading-7 text-[var(--cf-text-secondary)]">
+                Connect leaderboard scoring to exams, quizzes, practice, and
+                proof submissions through one unified execution feed.
+              </p>
+            </div>
           </section>
         </aside>
       </section>
@@ -250,15 +292,21 @@ function LeaderboardCard({
   isCurrentUser: boolean;
   topScore: number;
 }) {
-  const progress = topScore > 0 ? Math.round((entry.score_points / topScore) * 100) : 0;
+  const progress =
+    topScore > 0 ? Math.round((entry.score_points / topScore) * 100) : 0;
+
   const medal = getMedal(index);
+  const displayName = getDisplayName(entry);
+  const initials = getInitials(displayName);
 
   return (
     <article
       className={[
-        "group relative overflow-hidden rounded-[34px] border p-6 shadow-[0_20px_80px_rgba(0,0,0,0.22)] transition-all duration-300",
+        "group relative overflow-hidden rounded-[34px] border p-5 shadow-[0_20px_80px_rgba(0,0,0,0.20)] transition-all duration-300 hover:-translate-y-0.5 md:p-6",
         isCurrentUser
-          ? "border-[var(--cf-primary)]/40 bg-[linear-gradient(135deg,rgba(124,92,255,0.18),rgba(17,17,26,0.96))]"
+          ? "border-[var(--cf-primary)]/45 bg-[linear-gradient(135deg,rgba(124,92,255,0.18),rgba(17,17,26,0.96))]"
+          : index < 3
+          ? "border-[var(--cf-primary)]/25 bg-[linear-gradient(135deg,rgba(124,92,255,0.10),rgba(17,17,26,0.96))]"
           : "border-[var(--cf-border)] bg-[var(--cf-card)]",
       ].join(" ")}
     >
@@ -269,11 +317,11 @@ function LeaderboardCard({
       </div>
 
       <div className="relative">
-        <div className="flex flex-wrap items-center justify-between gap-5">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 items-center gap-4">
             <div
               className={[
-                "flex h-16 w-16 items-center justify-center rounded-3xl border text-xl font-black",
+                "flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl border text-xl font-black",
                 index === 0
                   ? "border-amber-300/35 bg-amber-300/10 text-amber-200 shadow-[0_0_24px_rgba(251,191,36,0.24)]"
                   : isCurrentUser
@@ -284,23 +332,38 @@ function LeaderboardCard({
               {medal}
             </div>
 
-            <div>
+            <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge text={`Rank #${entry.rank}`} />
-                {isCurrentUser ? <Badge text="You" variant="success" /> : null}
               </div>
 
-              <h2 className="mt-3 text-2xl font-black text-[var(--cf-text)]">
-                User #{entry.user_id}
-              </h2>
+              <div className="mt-3 flex min-w-0 flex-wrap items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--cf-primary)]/25 bg-[var(--cf-primary)]/10 text-sm font-black text-[var(--cf-accent)]">
+                  {initials || <User className="h-5 w-5" />}
+                </div>
 
-              <p className="mt-1 text-sm text-[var(--cf-text-muted)]">
-                Updated {formatDate(entry.updated_at)}
-              </p>
+                <div className="min-w-0">
+                  <h2 className="truncate text-2xl font-black leading-tight text-[var(--cf-text)]">
+                    {displayName}
+                  </h2>
+
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--cf-text-muted)]">
+                      ID {entry.user_id}
+                    </span>
+
+                    {isCurrentUser ? (
+                      <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-200">
+                        You
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="grid min-w-[240px] grid-cols-2 gap-3">
+          <div className="grid min-w-full grid-cols-2 gap-3 sm:min-w-[260px]">
             <MiniStat label="Points" value={`${entry.score_points}`} />
             <MiniStat label="Verified" value={`${entry.verified_tasks}`} />
           </div>
@@ -319,6 +382,10 @@ function LeaderboardCard({
             />
           </div>
         </div>
+
+        <p className="mt-4 text-xs text-[var(--cf-text-muted)]">
+          Updated {formatDate(entry.updated_at)}
+        </p>
       </div>
     </article>
   );
@@ -331,6 +398,8 @@ function CurrentUserCard({
   entry: LeaderboardEntry | null;
   period: PeriodType;
 }) {
+  const displayName = entry ? getDisplayName(entry) : "Not ranked yet";
+
   return (
     <section className="relative overflow-hidden rounded-[34px] border border-[var(--cf-primary)]/30 bg-[linear-gradient(135deg,rgba(124,92,255,0.16),rgba(17,17,26,0.96))] p-6 shadow-[0_0_32px_var(--cf-glow)]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(124,92,255,0.22),transparent_36%)]" />
@@ -344,7 +413,7 @@ function CurrentUserCard({
 
         <p className="mt-3 text-sm leading-7 text-[var(--cf-text-secondary)]">
           {entry
-            ? `You are currently ranked #${entry.rank} with ${entry.score_points} points.`
+            ? `${displayName} is ranked #${entry.rank} with ${entry.score_points} points.`
             : "You have not entered this arena yet."}
         </p>
 
@@ -352,27 +421,22 @@ function CurrentUserCard({
           <MiniStat label="Rank" value={entry ? `#${entry.rank}` : "—"} />
           <MiniStat label="Points" value={`${entry?.score_points ?? 0}`} />
         </div>
+
+        {entry ? (
+          <div className="mt-3">
+            <MiniStat label="User ID" value={`${entry.user_id}`} />
+          </div>
+        ) : null}
       </div>
     </section>
   );
 }
 
-function MetricCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
+function MiniMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[28px] border border-[var(--cf-border)] bg-[var(--cf-bg-secondary)] p-5">
-      <div className="flex items-center gap-3 text-[var(--cf-accent)]">
-        {icon}
-        <p className="text-xs font-black uppercase tracking-[0.16em]">{label}</p>
-      </div>
-      <p className="mt-4 text-3xl font-black text-[var(--cf-text)]">{value}</p>
+    <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-3">
+      <p className="text-[11px] text-[var(--cf-text-muted)]">{label}</p>
+      <p className="mt-1 text-lg font-black text-[var(--cf-text)]">{value}</p>
     </div>
   );
 }
@@ -396,21 +460,36 @@ function Rule({ text }: { text: string }) {
   );
 }
 
-function Badge({
+function Badge({ text }: { text: string }) {
+  return (
+    <span className="rounded-full border border-[var(--cf-primary)]/25 bg-[var(--cf-primary)]/10 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-[var(--cf-accent)]">
+      {text}
+    </span>
+  );
+}
+
+function BadgeSoft({
   text,
-  variant = "default",
+  tone = "default",
 }: {
   text: string;
-  variant?: "default" | "success";
+  tone?: "default" | "green" | "amber" | "rose";
 }) {
   const cls =
-    variant === "success"
+    tone === "green"
       ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-200"
+      : tone === "amber"
+      ? "border-amber-300/25 bg-amber-300/10 text-amber-200"
+      : tone === "rose"
+      ? "border-rose-400/25 bg-rose-500/10 text-rose-200"
       : "border-[var(--cf-primary)]/25 bg-[var(--cf-primary)]/10 text-[var(--cf-accent)]";
 
   return (
     <span
-      className={`rounded-full border px-3 py-1 text-xs font-black uppercase tracking-[0.16em] ${cls}`}
+      className={[
+        "rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em]",
+        cls,
+      ].join(" ")}
     >
       {text}
     </span>
@@ -419,9 +498,11 @@ function Badge({
 
 function EmptyState({ title, text }: { title: string; text: string }) {
   return (
-    <div className="rounded-[34px] border border-[var(--cf-border)] bg-[var(--cf-card)] p-8">
+    <div className="rounded-[34px] border border-[var(--cf-border)] bg-[var(--cf-card)] p-8 shadow-[0_16px_60px_rgba(0,0,0,0.14)]">
       <Medal className="h-7 w-7 text-[var(--cf-accent)]" />
-      <h2 className="mt-4 text-2xl font-black text-[var(--cf-text)]">{title}</h2>
+      <h2 className="mt-4 text-2xl font-black text-[var(--cf-text)]">
+        {title}
+      </h2>
       <p className="mt-2 text-sm text-[var(--cf-text-secondary)]">{text}</p>
     </div>
   );
@@ -440,6 +521,29 @@ function getMedal(index: number) {
   if (index === 1) return <Medal className="h-7 w-7" />;
   if (index === 2) return <Trophy className="h-7 w-7" />;
   return `#${index + 1}`;
+}
+
+function getDisplayName(entry: LeaderboardEntry) {
+  const username = entry.username?.trim();
+
+  if (!username) return `User #${entry.user_id}`;
+
+  if (username.length > 15) {
+    return `${username.slice(0, 15)}...`;
+  }
+
+  return username;
+}
+
+function getInitials(name: string) {
+  if (!name || name.startsWith("User #")) return "";
+
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
 }
 
 function format(value?: string | null) {

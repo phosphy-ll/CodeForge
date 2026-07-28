@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Integer, String, func
+from sqlalchemy import Boolean, DateTime, Integer, String, func, Column
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -80,6 +80,19 @@ class User(Base):
     password_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
     subscription_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    polar_subscription_id = Column(String, nullable=True)
+
+    polar_subscription_cancel_at_period_end: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+
+    polar_subscription_current_period_end: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )

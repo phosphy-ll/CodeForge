@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -50,14 +50,29 @@ type AttemptSubmitResponse = {
   can_retry: boolean;
 };
 
-const DIFFICULTIES = [2, 3, 4];
+type AllowedLanguagesResponse = {
+  subscription_tier: string;
+  languages: string[];
+  custom_language_allowed: boolean;
+};
+
+const DIFFICULTIES = [1, 2, 3, 4, 5];
+
+const FALLBACK_LANGUAGES: AllowedLanguagesResponse = {
+  subscription_tier: "free",
+  languages: ["Python", "Java", "JavaScript"],
+  custom_language_allowed: false,
+};
 
 export default function ExamSessionPage() {
   const router = useRouter();
+  const examSectionRef = useRef<HTMLElement | null>(null);
 
   const [skillName, setSkillName] = useState("");
   const [language, setLanguage] = useState("");
   const [difficulty, setDifficulty] = useState(3);
+  const [allowedLanguages, setAllowedLanguages] =
+    useState<AllowedLanguagesResponse>(FALLBACK_LANGUAGES);
 
   const [exam, setExam] = useState<ExamGenerateResponse | null>(null);
   const [contentText, setContentText] = useState("");
@@ -68,6 +83,19 @@ export default function ExamSessionPage() {
   const [manualReviewLoading, setManualReviewLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<AttemptSubmitResponse | null>(null);
+
+  async function loadAllowedLanguages() {
+    try {
+      const response = await api.get("/goals/allowed-languages");
+      setAllowedLanguages(response.data || FALLBACK_LANGUAGES);
+    } catch {
+      setAllowedLanguages(FALLBACK_LANGUAGES);
+    }
+  }
+
+  useEffect(() => {
+    loadAllowedLanguages();
+  }, []);
 
   async function generateExam() {
     const goalId = getSelectedGoalId();
@@ -97,6 +125,13 @@ export default function ExamSessionPage() {
       setExam(response.data);
       setContentText("");
       setContentCode("");
+
+      window.setTimeout(() => {
+        examSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 120);
     } catch (err: any) {
       setError(err?.response?.data?.detail || "Failed to generate exam.");
     } finally {
@@ -222,26 +257,25 @@ export default function ExamSessionPage() {
               />
             </div>
 
-            <div>
-              <Label>Language / stack</Label>
-              <input
-                value={language}
-                onChange={(event) => setLanguage(event.target.value)}
-                placeholder="Optional: Python, Java, TypeScript..."
-                className="mt-3 w-full rounded-2xl border border-[var(--cf-border)] bg-[var(--cf-bg-secondary)] px-5 py-4 text-[var(--cf-text)] outline-none transition placeholder:text-[var(--cf-text-muted)] hover:border-[var(--cf-primary)]/30 focus:border-[var(--cf-primary)]/50"
-              />
-            </div>
+            <LanguageSelector
+              value={language}
+              languages={allowedLanguages.languages}
+              customAllowed={allowedLanguages.custom_language_allowed}
+              tier={allowedLanguages.subscription_tier}
+              onChange={setLanguage}
+            />
 
             <div>
               <Label>Difficulty</Label>
 
-              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <div className="mt-3 grid gap-3 sm:grid-cols-5">
                 {DIFFICULTIES.map((item) => {
                   const active = difficulty === item;
 
                   return (
                     <button
                       key={item}
+                      type="button"
                       onClick={() => setDifficulty(item)}
                       className={[
                         "rounded-3xl border p-5 text-left transition-all duration-300",
@@ -252,7 +286,7 @@ export default function ExamSessionPage() {
                     >
                       <p className="text-2xl font-black">{item}/5</p>
                       <p className="mt-1 text-sm text-[var(--cf-text-muted)]">
-                        {item === 2 ? "Focused" : item === 3 ? "Standard" : "Hard"}
+                        {getDifficultyLabel(item)}
                       </p>
                     </button>
                   );
@@ -273,7 +307,10 @@ export default function ExamSessionPage() {
       </section>
 
       {exam ? (
-        <section className="relative overflow-hidden rounded-[38px] border border-[var(--cf-border)] bg-[var(--cf-card)] p-7 shadow-[0_24px_90px_rgba(0,0,0,0.26)]">
+        <section
+          ref={examSectionRef}
+          className="scroll-mt-6 relative overflow-hidden rounded-[38px] border border-[var(--cf-border)] bg-[var(--cf-card)] p-7 shadow-[0_24px_90px_rgba(0,0,0,0.26)]"
+        >
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(124,92,255,0.16),transparent_35%)]" />
 
           <div className="relative">
@@ -422,7 +459,7 @@ export default function ExamSessionPage() {
             </div>
 
             <div className="mt-7 rounded-3xl border border-[var(--cf-border)] bg-[var(--cf-bg-secondary)] p-5">
-              <p className="text-sm leading-7 text-[var(--cf-text-secondary)] whitespace-pre-wrap">
+              <p className="whitespace-pre-wrap text-sm leading-7 text-[var(--cf-text-secondary)]">
                 {result.attempt.feedback || "No feedback returned."}
               </p>
             </div>
@@ -445,6 +482,64 @@ export default function ExamSessionPage() {
         </section>
       ) : null}
     </main>
+  );
+}
+
+function LanguageSelector({
+  value,
+  languages,
+  customAllowed,
+  tier,
+  onChange,
+}: {
+  value: string;
+  languages: string[];
+  customAllowed: boolean;
+  tier: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div>
+      <Label>Language / stack</Label>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+        {languages.map((item) => {
+          const active = value.toLowerCase() === item.toLowerCase();
+
+          return (
+            <button
+              key={item}
+              type="button"
+              onClick={() => onChange(item)}
+              className={[
+                "rounded-3xl border p-4 text-left transition-all duration-300",
+                active
+                  ? "border-[var(--cf-primary)]/40 bg-[var(--cf-primary)]/12 text-[var(--cf-text)] shadow-[0_0_30px_var(--cf-glow)]"
+                  : "border-[var(--cf-border)] bg-[var(--cf-bg-secondary)] text-[var(--cf-text-secondary)] hover:border-[var(--cf-primary)]/30",
+              ].join(" ")}
+            >
+              <p className="font-black">{item}</p>
+              <p className="mt-1 text-xs text-[var(--cf-text-muted)]">
+                Available on {format(tier)}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+
+      {customAllowed ? (
+        <input
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder="Or type any language..."
+          className="mt-3 w-full rounded-2xl border border-[var(--cf-border)] bg-[var(--cf-bg-secondary)] px-5 py-4 text-[var(--cf-text)] outline-none transition placeholder:text-[var(--cf-text-muted)] hover:border-[var(--cf-primary)]/30 focus:border-[var(--cf-primary)]/50"
+        />
+      ) : (
+        <p className="mt-3 rounded-2xl border border-[var(--cf-border)] bg-[var(--cf-bg-secondary)] p-4 text-sm text-[var(--cf-text-secondary)]">
+          Custom exam languages unlock on Ultra.
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -498,4 +593,19 @@ function ErrorBox({ text }: { text: string }) {
       {text}
     </div>
   );
+}
+
+function getDifficultyLabel(value: number) {
+  if (value === 1) return "Light";
+  if (value === 2) return "Focused";
+  if (value === 3) return "Standard";
+  if (value === 4) return "Hard";
+  return "Extreme";
+}
+
+function format(value?: string | null) {
+  if (!value) return "—";
+  return value
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }

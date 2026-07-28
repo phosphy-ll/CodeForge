@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
 
 export default function VerifyEmailPage() {
   const router = useRouter();
@@ -18,6 +19,10 @@ export default function VerifyEmailPage() {
   const [errorText, setErrorText] = useState("");
   const [successText, setSuccessText] = useState("");
 
+
+  useEffect(() => {
+    trackEvent("email_verify_opened");
+  }, []);
   useEffect(() => {
     if (cooldown <= 0) return;
 
@@ -35,6 +40,8 @@ export default function VerifyEmailPage() {
     setErrorText("");
     setSuccessText("");
 
+    trackEvent("email_verify_submit");
+
     try {
       await api.post("/auth/verify-email-code", {
         email,
@@ -42,6 +49,8 @@ export default function VerifyEmailPage() {
       });
 
       setSuccessText("Email verified. Redirecting to login...");
+
+      trackEvent("email_verified");
 
       window.setTimeout(() => {
         router.replace("/login?verified=1");
@@ -51,6 +60,9 @@ export default function VerifyEmailPage() {
         error?.response?.data?.detail ||
         error?.message ||
         "Verification failed.";
+        trackEvent("email_verify_failed", {
+          reason: String(detail),
+        });
 
       setErrorText(String(detail));
     } finally {
@@ -71,12 +83,16 @@ export default function VerifyEmailPage() {
       });
 
       setSuccessText("New verification code sent.");
+      trackEvent("email_verify_code_resent");
       setCooldown(45);
     } catch (error: any) {
       const detail =
         error?.response?.data?.detail ||
         error?.message ||
         "Failed to resend code.";
+        trackEvent("email_verify_resend_failed", {
+          reason: String(detail),
+        });
 
       setErrorText(String(detail));
     } finally {

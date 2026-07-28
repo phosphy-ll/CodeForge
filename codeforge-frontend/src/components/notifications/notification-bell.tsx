@@ -22,10 +22,44 @@ export default function NotificationBell() {
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const initializedRef = useRef(false);
+
+  const loadingCountRef = useRef(false);
+  const loadingItemsRef = useRef(false);
+
+  function getAccessToken() {
+    if (typeof window === "undefined") return null;
+
+    return (
+      localStorage.getItem("access_token") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("cf_access_token")
+    );
+  }
+
+  async function loadUnreadCount() {
+    const token = getAccessToken();
+
+    if (!token || loadingCountRef.current) return;
+
+    loadingCountRef.current = true;
+
+    try {
+      const response = await api.get("/notifications/unread-count");
+      setUnreadCount(Number(response.data?.count || 0));
+    } catch {
+      setUnreadCount(0);
+    } finally {
+      loadingCountRef.current = false;
+    }
+  }
 
   async function loadNotifications() {
-    if (loading) return;
+    const token = getAccessToken();
+
+    if (!token || loadingItemsRef.current) return;
+
+    loadingItemsRef.current = true;
+    setLoading(true);
 
     try {
       const [itemsResponse, countResponse] = await Promise.all([
@@ -40,24 +74,33 @@ export default function NotificationBell() {
       setUnreadCount(0);
     } finally {
       setLoading(false);
+      loadingItemsRef.current = false;
     }
   }
 
   useEffect(() => {
-    if (initializedRef.current) return;
-
-    initializedRef.current = true;
-
-    loadNotifications();
+    loadUnreadCount();
 
     const interval = window.setInterval(() => {
-      loadNotifications();
-    }, 30000);
+      loadUnreadCount();
+    }, 60000);
 
     return () => {
       window.clearInterval(interval);
     };
   }, []);
+
+  function toggleOpen() {
+    setOpen((value) => {
+      const nextValue = !value;
+
+      if (nextValue) {
+        loadNotifications();
+      }
+
+      return nextValue;
+    });
+  }
 
   async function handleOpenNotification(item: NotificationItem) {
     try {
@@ -90,7 +133,7 @@ export default function NotificationBell() {
   return (
     <div className="fixed right-6 top-6 z-[80]">
       <button
-        onClick={() => setOpen((value) => !value)}
+        onClick={toggleOpen}
         className={[
           "group relative flex h-12 w-12 items-center justify-center rounded-2xl",
           "border border-[var(--cf-border)] bg-[var(--cf-card)] text-[var(--cf-text)]",

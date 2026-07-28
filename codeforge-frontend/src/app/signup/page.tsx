@@ -2,11 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -21,6 +22,9 @@ export default function SignupPage() {
 
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
+  useEffect(() => {
+    trackEvent("signup_opened");
+  }, []);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -28,12 +32,16 @@ export default function SignupPage() {
     setLoading(true);
     setErrorText("");
 
+    trackEvent("signup_submit");
+
     try {
       await api.post("/auth/register", {
         email,
         username,
         password,
       });
+
+      trackEvent("signup_success");
 
       router.push(
         `/verify-email?email=${encodeURIComponent(email)}`
@@ -43,6 +51,10 @@ export default function SignupPage() {
         error?.response?.data?.detail ||
         error?.message ||
         "Registration failed. Please try again.";
+
+        trackEvent("signup_failed", {
+          reason: String(detail),
+        });
 
       setErrorText(String(detail));
     } finally {
