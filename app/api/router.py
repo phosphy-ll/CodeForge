@@ -16,7 +16,6 @@ from app.api.v1.tasks import router as tasks_router
 from app.api.v1.daily_plans import router as daily_plans_router
 from app.api.v1.notifications import router as notifications_router
 from app.api.v1.internal import router as internal_router
-from app.api.v1.practice import router as practice_router
 from app.api.v1.exams import router as exams_router
 from app.api.v1.billing import router as billing_router
 from app.api.v1 import analytics
@@ -40,7 +39,6 @@ api_router.include_router(practice_router)
 api_router.include_router(daily_plans_router)
 api_router.include_router(notifications_router)
 api_router.include_router(internal_router)
-api_router.include_router(practice_router)
 api_router.include_router(exams_router)
 api_router.include_router(billing_router)
 api_router.include_router(analytics.router)
