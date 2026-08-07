@@ -3,7 +3,10 @@ from app.domain.languages import normalize_language, ULTRA_RECOMMENDED_LANGUAGES
 
 
 def get_user_limits(user):
-    return SUBSCRIPTION_CONFIG[user.subscription_tier]
+    return SUBSCRIPTION_CONFIG.get(
+        user.subscription_tier,
+        SUBSCRIPTION_CONFIG["free"],
+    )
 
 
 def is_language_allowed_for_user(user, language: str) -> bool:
