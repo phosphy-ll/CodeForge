@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     )
 
     APP_NAME: str = "CodeForge"
-    DEBUG: bool = True
+    DEBUG: bool = False
     ENVIRONMENT: str = "dev"
 
     DATABASE_URL: str
