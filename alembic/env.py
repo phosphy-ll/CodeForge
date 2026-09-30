@@ -12,6 +12,7 @@ from app.db.base import Base
 # Импортируем все модели здесь, чтобы metadata знала таблицы
 from app.models.achievement import Achievement, UserAchievement  # noqa: F401
 from app.models.audit_log import AuditLog  # noqa: F401
+from app.models.billing_webhook_event import BillingWebhookEvent  # noqa: F401
 from app.models.daily_plan import DailyPlan, DailyPlanTask  # noqa: F401
 from app.models.goal import Goal  # noqa: F401
 from app.models.leaderboard import LeaderboardEntry  # noqa: F401
