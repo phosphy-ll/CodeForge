@@ -312,11 +312,6 @@ export default function NewGoalPage() {
         saveSelectedGoalId(response.data.id);
       }
 
-      localStorage.setItem(
-        "codeforge_guided_tour_completed",
-        "true"
-      );
-
       window.dispatchEvent(
         new Event("codeforge:goal-created")
       );

@@ -4,6 +4,7 @@ from app.domain.languages import (
     PLUS_LANGUAGES,
 )
 import os
+
 SUBSCRIPTION_CONFIG = {
     "free": {
         "max_active_goals": 1,
@@ -21,7 +22,6 @@ SUBSCRIPTION_CONFIG = {
         "allowed_languages": FREE_LANGUAGES,
         "custom_language_allowed": False,
         "quiz_generations_per_day": 3,
-        
     },
     "starter": {
         "max_active_goals": 1,
@@ -75,6 +75,7 @@ SUBSCRIPTION_CONFIG = {
         "quiz_generations_per_day": 12,
     },
 }
+
 SUBSCRIPTION_PRICING = {
     "starter": {
         "label": "Starter",
@@ -96,7 +97,6 @@ SUBSCRIPTION_PRICING = {
 for tier, pricing in SUBSCRIPTION_PRICING.items():
     base = pricing["base_price_usd"]
     price = pricing["price_usd"]
-
     pricing["discount_percent"] = round(((base - price) / base) * 100)
 
 BETA_PACK = {
@@ -120,23 +120,23 @@ BETA_PACK["discount_percent"] = round(
 
 SUBSCRIPTION_META = {
     "starter": {
-        "price": 5,
-        "original_price": 6.5,
+        "price": SUBSCRIPTION_PRICING["starter"]["price_usd"],
+        "original_price": SUBSCRIPTION_PRICING["starter"]["base_price_usd"],
         "polar_product_id": os.getenv("POLAR_STARTER_PRODUCT_ID"),
     },
     "plus": {
-        "price": 10,
-        "original_price": 12.5,
+        "price": SUBSCRIPTION_PRICING["plus"]["price_usd"],
+        "original_price": SUBSCRIPTION_PRICING["plus"]["base_price_usd"],
         "polar_product_id": os.getenv("POLAR_PLUS_PRODUCT_ID"),
     },
     "ultra": {
-        "price": 20,
-        "original_price": 25,
+        "price": SUBSCRIPTION_PRICING["ultra"]["price_usd"],
+        "original_price": SUBSCRIPTION_PRICING["ultra"]["base_price_usd"],
         "polar_product_id": os.getenv("POLAR_ULTRA_PRODUCT_ID"),
     },
     "beta": {
-        "price": 25,
-        "original_price": 50,
+        "price": BETA_PACK["price_usd"],
+        "original_price": BETA_PACK["base_value_usd"],
         "polar_product_id": os.getenv("POLAR_BETA_PRODUCT_ID"),
     },
 }
