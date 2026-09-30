@@ -9,6 +9,7 @@ from app.models.leaderboard import LeaderboardEntry
 from app.models.practice_attempt import PracticeAttempt
 from app.models.audit_log import AuditLog
 from app.models.user_session import UserSession
+from app.models.billing_webhook_event import BillingWebhookEvent
 
 
 __all__ = [
@@ -25,4 +26,5 @@ __all__ = [
     "PracticeAttempt",
     "AuditLog",
     "UserSession",
+    "BillingWebhookEvent",
 ]
