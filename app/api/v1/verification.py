@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from app.api.deps import get_current_user
+from app.core.rate_limit import rate_limiter
 from app.models.user import User
 from app.verification.strategy import VerificationContext, VerificationService
 from app.ai.review_service import AIReviewService
@@ -24,6 +25,11 @@ async def check_evidence(
     data: EvidenceCheckRequest,
     current_user: Annotated[User, Depends(get_current_user)],
 ):
+    if not rate_limiter.check(
+        f"verification:evidence:{current_user.id}", limit=12, window_seconds=60
+    ):
+        raise HTTPException(status_code=429, detail="Too many evidence checks")
+
     # Intentionally does not perform review_submission / progress mutation.
     service = VerificationService(AIReviewService())
     result = await service.verify(
