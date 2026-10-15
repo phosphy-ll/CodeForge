@@ -1,0 +1,29 @@
+name: CodeForge Verification Strategy Tests
+
+on:
+  pull_request:
+    paths:
+      - "app/verification/**"
+      - "app/api/v1/verification.py"
+      - "tests/test_verification_strategy.py"
+      - ".github/workflows/verification-strategy-tests.yml"
+  push:
+    branches:
+      - "feat/strategy-verification"
+    paths:
+      - "app/verification/**"
+      - "tests/test_verification_strategy.py"
+
+jobs:
+  test-strategies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install isolated test dependencies
+        run: python -m pip install pytest==9.0.2 httpx==0.28.1
+      - name: Run Strategy unit tests
+        run: python -m pytest -q tests/test_verification_strategy.py
