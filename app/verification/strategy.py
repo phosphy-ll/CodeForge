@@ -204,6 +204,10 @@ class VerificationService:
             raise ValueError("Unknown verification strategy")
         return await implementation.verify(context)
 
+    async def precheck_submission(self, user: Any, **kwargs: Any) -> dict[str, Any]:
+        """Preserve the existing optional AI precheck used by SubmissionService."""
+        return await self.strategies["ai"].ai_service.precheck_submission(user, **kwargs)
+
     async def review_submission(self, **kwargs: Any) -> dict[str, Any]:
         """Compatibility adapter for CodeForge's existing AI review code path."""
         outcome = await self.verify("ai", VerificationContext(**kwargs))
