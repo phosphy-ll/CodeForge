@@ -574,7 +574,7 @@ function SubmissionCard({
         </div>
       ) : null}
 
-      {submission.followup_question ? (
+      {submission.status !== "verified" && submission.followup_question ? (
         <div className="mt-4 rounded-2xl border border-[var(--cf-primary)]/25 bg-[var(--cf-primary)]/8 p-4">
           <p className="text-sm font-black text-[var(--cf-text)]">
             {submission.followup_answer ? "Follow-up answered" : "Follow-up question"}
