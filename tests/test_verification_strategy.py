@@ -12,6 +12,9 @@ class FakeAIService:
     async def review_submission(self, **kwargs):
         return {"score": 84, "feedback": "Good implementation", "suspicion_score": 0}
 
+    async def precheck_submission(self, user, **kwargs):
+        return {"can_submit": True, "confidence_score": 0.9, "confidence_label": "high", "rejection_risk": "low", "likely_issues": [], "tips": []}
+
 
 def run(awaitable):
     return asyncio.run(awaitable)
@@ -21,6 +24,8 @@ def test_ai_adapter_keeps_current_contract():
     service = VerificationService(FakeAIService())
     outcome = run(service.review_submission(user=object(), task_title="Demo"))
     assert outcome == {"score": 84, "feedback": "Good implementation", "suspicion_score": 0}
+    precheck = run(service.precheck_submission(user=object(), task_title="Demo"))
+    assert precheck["can_submit"] is True
 
 
 def test_manual_never_grades():
