@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.domain.subscription import get_user_limits
 from app.repositories.user_skill_repository import UserSkillRepository
 from app.ai.review_service import AIReviewService
+from app.verification.strategy import VerificationService
 from app.domain.enums import SubmissionStatus, TaskStatus
 from app.models.task_submission import TaskSubmission
 from app.models.user import User
@@ -31,7 +32,7 @@ class SubmissionService:
         self.milestone_repo = MilestoneRepository(session)
         self.task_repo = TaskRepository(session)
         self.submission_repo = SubmissionRepository(session)
-        self.ai_service = AIReviewService()
+        self.ai_service = VerificationService(AIReviewService())
         self.security_service = SecurityService(session)
         self.audit_service = AuditService(session)
         self.notification_service = NotificationService(session)
