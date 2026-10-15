@@ -22,6 +22,8 @@ from app.api.v1.billing import router as billing_router
 from app.api.v1 import analytics
 from app.api.v1.admin_metrics import router as admin_metrics_router
 
+from app.api.v1.verification import router as verification_router
+
 api_router = APIRouter()
 
 api_router.include_router(health_router)
@@ -45,3 +47,4 @@ api_router.include_router(exams_router)
 api_router.include_router(billing_router)
 api_router.include_router(analytics.router)
 api_router.include_router(admin_metrics_router)
+api_router.include_router(verification_router)

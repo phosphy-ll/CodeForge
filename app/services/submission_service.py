@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.domain.subscription import get_user_limits
 from app.repositories.user_skill_repository import UserSkillRepository
 from app.ai.review_service import AIReviewService
+from app.verification.strategy import VerificationService
+from app.verification.review_state import apply_review_explanations
 from app.domain.enums import SubmissionStatus, TaskStatus
 from app.models.task_submission import TaskSubmission
 from app.models.user import User
@@ -31,7 +33,7 @@ class SubmissionService:
         self.milestone_repo = MilestoneRepository(session)
         self.task_repo = TaskRepository(session)
         self.submission_repo = SubmissionRepository(session)
-        self.ai_service = AIReviewService()
+        self.ai_service = VerificationService(AIReviewService())
         self.security_service = SecurityService(session)
         self.audit_service = AuditService(session)
         self.notification_service = NotificationService(session)
@@ -189,11 +191,15 @@ class SubmissionService:
 
         submission.score = score
         submission.feedback = feedback
-        submission.why_not_verified = why_not_verified
-        submission.improvement_steps = "\n".join(improvement_steps) if isinstance(improvement_steps, list) else str(improvement_steps or "")
+        apply_review_explanations(
+            submission,
+            status=status,
+            why_not_verified=why_not_verified,
+            improvement_steps=improvement_steps,
+            suggested_followup=followup,
+        )
         submission.reviewer_type = reviewer_type
         submission.suspicion_score = suspicion
-        submission.followup_question = followup
         submission.status = status
         submission.earned_points = earned_points
         submission.reviewed_at = datetime.now(timezone.utc)
@@ -529,6 +535,9 @@ class SubmissionService:
         if submission.status == SubmissionStatus.VERIFIED.value:
             raise ValueError("Submission is already verified")
 
+        if submission.followup_answer:
+            raise ValueError("Follow-up already answered; submit a revised attempt")
+
         task = await self.task_repo.get_by_id(submission.task_id)
         if not task:
             raise ValueError("Task not found")
@@ -579,7 +588,14 @@ class SubmissionService:
         submission.feedback = feedback
         submission.reviewer_type = "ai"
         submission.suspicion_score = suspicion
-        submission.followup_question = followup
+        apply_review_explanations(
+            submission,
+            status=status,
+            why_not_verified=why_not_verified,
+            improvement_steps=improvement_steps,
+            suggested_followup=followup,
+            keep_answered_question=True,
+        )
         submission.status = status
         submission.earned_points = earned_points
         submission.reviewed_at = datetime.now(timezone.utc)

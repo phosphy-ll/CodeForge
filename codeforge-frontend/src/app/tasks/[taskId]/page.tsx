@@ -565,7 +565,7 @@ function SubmissionCard({
         </p>
       ) : null}
 
-      {submission.why_not_verified ? (
+      {submission.status !== "verified" && submission.why_not_verified ? (
         <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
           <p className="text-sm font-black text-amber-300">Why not verified</p>
           <p className="mt-2 text-sm leading-7 text-[var(--cf-text-secondary)]">
@@ -574,10 +574,10 @@ function SubmissionCard({
         </div>
       ) : null}
 
-      {submission.followup_question ? (
+      {submission.status !== "verified" && submission.followup_question ? (
         <div className="mt-4 rounded-2xl border border-[var(--cf-primary)]/25 bg-[var(--cf-primary)]/8 p-4">
           <p className="text-sm font-black text-[var(--cf-text)]">
-            Follow-up question
+            {submission.followup_answer ? "Follow-up answered" : "Follow-up question"}
           </p>
           <p className="mt-2 text-sm leading-7 text-[var(--cf-text-secondary)]">
             {submission.followup_question}
