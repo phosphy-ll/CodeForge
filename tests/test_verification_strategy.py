@@ -111,3 +111,89 @@ def test_ci_run_cannot_point_to_another_commit():
     context = VerificationContext(submission_link="https://github.com/alice/demo/commit/abcdefa", workflow_run_id=42)
     outcome = run(service.verify("automated_tests", context))
     assert outcome.state == "invalid_evidence"
+
+
+# Regression tests for feedback consistency after a follow-up answer.
+from types import SimpleNamespace
+
+from app.verification.review_state import apply_review_explanations
+
+
+def test_passed_first_review_has_no_failure_explanation_or_followup():
+    submission = SimpleNamespace(
+        why_not_verified="old issue",
+        improvement_steps="old step",
+        followup_question="obsolete question",
+        followup_answer=None,
+    )
+    apply_review_explanations(
+        submission,
+        status="verified",
+        why_not_verified="AI suggested additional work",
+        improvement_steps=["AI suggested a step"],
+        suggested_followup="AI suggested an unnecessary question",
+    )
+    assert submission.why_not_verified is None
+    assert submission.improvement_steps is None
+    assert submission.followup_question is None
+
+
+def test_passed_followup_preserves_original_question_and_answer():
+    submission = SimpleNamespace(
+        why_not_verified="Explanation was too short",
+        improvement_steps="Provide edge cases",
+        followup_question="How does concatenation allocate memory?",
+        followup_answer="Strings are immutable, so a new value is produced.",
+    )
+    apply_review_explanations(
+        submission,
+        status="verified",
+        why_not_verified="Stale AI failure reason",
+        improvement_steps=["Unnecessary extra work"],
+        suggested_followup="A completely different question",
+        keep_answered_question=True,
+    )
+    assert submission.why_not_verified is None
+    assert submission.improvement_steps is None
+    assert submission.followup_question == "How does concatenation allocate memory?"
+    assert submission.followup_answer == "Strings are immutable, so a new value is produced."
+
+
+def test_unsuccessful_followup_keeps_correct_question_answer_pair():
+    submission = SimpleNamespace(
+        why_not_verified="Prior review",
+        improvement_steps=None,
+        followup_question="Explain string concatenation",
+        followup_answer="My incomplete explanation",
+    )
+    apply_review_explanations(
+        submission,
+        status="needs_revision",
+        why_not_verified="The answer does not cover memory allocations",
+        improvement_steps=["Explain immutability", "Discuss allocations"],
+        suggested_followup="New question that was never answered",
+        keep_answered_question=True,
+    )
+    assert submission.followup_question == "Explain string concatenation"
+    assert submission.followup_answer == "My incomplete explanation"
+    assert submission.why_not_verified == "The answer does not cover memory allocations"
+    assert submission.improvement_steps == "Explain immutability\nDiscuss allocations"
+
+
+def test_first_failed_review_can_offer_a_followup():
+    submission = SimpleNamespace(
+        why_not_verified=None,
+        improvement_steps=None,
+        followup_question=None,
+        followup_answer=None,
+    )
+    apply_review_explanations(
+        submission,
+        status="needs_revision",
+        why_not_verified="Missing reasoning",
+        improvement_steps=["Add concrete examples"],
+        suggested_followup="Why are strings immutable?",
+    )
+    assert submission.followup_question == "Why are strings immutable?"
+    assert submission.why_not_verified == "Missing reasoning"
+    assert submission.improvement_steps == "Add concrete examples"
