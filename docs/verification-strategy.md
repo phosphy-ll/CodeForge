@@ -55,3 +55,20 @@ The evidence route requires Bearer authentication. Real GitHub metadata is queri
 - https://docs.github.com/en/rest/actions/workflow-runs
 - https://docs.pytest.org/en/stable/
 - https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html
+
+
+## Verified local integration (2026-10-15)
+
+The developer demonstrated the following results against locally running CodeForge:
+- Authenticated public GitHub commit evidence: `evidence_found`, `task_verified=false`.
+- Manual strategy: `requires_review`, `task_verified=false`.
+- GitHub Actions run 38771477015: `evidence_found`, `task_verified=false`.
+- Existing AI submission after a follow-up answer: score changed from 65 to 75, status changed from `needs_revision` to `verified`, earned points shown as 35.
+
+A UI/data mismatch was discovered during the AI test: a verified submission still displayed
+`why_not_verified` and replaced the answered question with a newly generated question.
+This branch now clears failure explanations on successful review, preserves the original
+answered question in the database, and hides old follow-up prompts in the verified UI.
+These follow-up bugfixes require local verification after pulling the new commit.
+
+The active database host was confirmed as `localhost` during local testing.
